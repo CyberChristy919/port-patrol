@@ -25,7 +25,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | Port Blitz | 60-second typed recall of port numbers |
 | Patch Panel | Match ports to services across 3 panels, timed |
 | Cyber Snake | Classic snake: a protocol name appears, steer into its port number and avoid decoy ports; walls and your tail end the run |
-| Study Deck | Flashcards, searchable reference table, secure/insecure pairs |
+| Study Deck | Flashcards, searchable reference table, secure/insecure pairs, memory tricks (built-in mnemonics plus your own, saved in your browser) |
 
 Every mode ends with a "ports to review" list and a "Drill my misses" button.
 
@@ -52,3 +52,13 @@ All port data lives in `data.js`. Each entry looks like:
 - Port Blitz: `Enter` submit, `Tab` skip
 - Cyber Snake: arrow keys / WASD to steer, `Space` to pause; swipe or on-screen pad on phones
 - Flashcards: `Space` flip, arrow keys to move
+
+## Memory tricks
+
+Built-in mnemonics live in `window.MNEMONICS` at the bottom of `data.js`, keyed by port `id`:
+
+```js
+smtp: "Send Mail To 25 People.",
+```
+
+They appear in Study Deck > Memory tricks, on the back of flashcards, after each quiz answer, and in the review list at the end of a game. Players can write their own trick for any port; it is saved in their browser (localStorage) and replaces the built-in trick on flashcards and in feedback.

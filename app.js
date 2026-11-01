@@ -26,6 +26,15 @@
     const code = window.DECKS[state.deck].code;
     return code ? ALL.filter((p) => p.exams.includes(code)) : ALL.slice();
   };
+  // Memory tricks: built-in plus the player's own (saved in this browser when storage is available)
+  const MY_KEY = "portpatrol.mytricks";
+  const store = (() => { try { const t = "__pp"; window.localStorage.setItem(t, t); window.localStorage.removeItem(t); return window.localStorage; } catch (e) { return null; } })();
+  let myTricks = {};
+  try { myTricks = JSON.parse((store && store.getItem(MY_KEY)) || "{}") || {}; } catch (e) { myTricks = {}; }
+  const saveTricks = () => { try { if (store) store.setItem(MY_KEY, JSON.stringify(myTricks)); } catch (e) {} };
+  const builtIn = (p) => (window.MNEMONICS || {})[p.id] || "";
+  const trickFor = (p) => myTricks[p.id] || builtIn(p);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const examTags = (p) => {
     const t = [];
     if (p.exams.includes("N")) t.push("Net+");
@@ -116,7 +125,7 @@
     $("#res-stats").innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
     const uniq = [...new Set(missed)].map((id) => byId[id]);
     $("#res-missed-wrap").hidden = !uniq.length;
-    $("#res-missed").innerHTML = uniq.map((p) => `<li><b>${portStr(p)}</b><div><strong>${p.name}</strong> <span>· ${p.proto} · ${p.tip}</span></div></li>`).join("");
+    $("#res-missed").innerHTML = uniq.map((p) => `<li><b>${portStr(p)}</b><div><strong>${p.name}</strong> <span>· ${p.proto} · ${p.tip}</span>${trickFor(p) ? `<span class="memo-mini">Trick: ${esc(trickFor(p))}</span>` : ""}</div></li>`).join("");
     const drill = $("#res-drill");
     drill.hidden = !uniq.length;
     drill.onclick = () => { state.drillIds = uniq.map((p) => p.id); state.lastMode = "quiz"; startQuiz(); };
@@ -186,7 +195,7 @@
     fb.className = "feedback" + (ok ? "" : " bad");
     const chosen = byId[id];
     const wrongNote = !ok && chosen ? `<p>You picked ${chosen.name}, which uses ${portStr(chosen)}.</p>` : "";
-    fb.innerHTML = `<div>${ok ? "Correct." : "Not quite."} <b>${q.item.name}</b> → <b>${portStr(q.item)}</b> (${q.item.proto})</div>${wrongNote}<p>${q.item.tip}</p>`;
+    fb.innerHTML = `<div>${ok ? "Correct." : "Not quite."} <b>${q.item.name}</b> → <b>${portStr(q.item)}</b> (${q.item.proto})</div>${wrongNote}<p>${q.item.tip}</p>${trickFor(q.item) ? `<p class="memo-line"><span class="memo-label mono">Memory trick</span> ${esc(trickFor(q.item))}</p>` : ""}`;
     fb.hidden = false;
     $("#q-score").textContent = quiz.score;
     $("#q-streak").textContent = quiz.streak;
@@ -494,6 +503,9 @@
     }
     $("#fc-full").textContent = `${p.full} · ${p.proto}`;
     $("#fc-tip").textContent = p.tip;
+    const tr = trickFor(p);
+    $("#fc-memo").hidden = !tr;
+    $("#fc-memo").textContent = tr ? (myTricks[p.id] ? "Your trick: " : "Trick: ") + tr : "";
     $("#fc-tags").textContent = examTags(p).join(" · ");
     $("#fc-count").textContent = `${study.i + 1} / ${study.cards.length}`;
   }
@@ -520,9 +532,24 @@
     const card = (a, b) => `<div class="pair"><div class="ins"><b>${a.p}</b><span>${a.name}</span></div><div class="arrow">→</div><div class="sec"><b>${b.p}</b><span>${b.name}</span></div></div>`;
     $("#pairs").innerHTML = pairs.map(([a, b]) => card({ name: a.name, p: portStr(a) }, { name: b.name, p: portStr(b) })).join("") + extra.map(([a, b]) => card(a, b)).join("");
   }
+  function renderTricks(q = "") {
+    q = q.trim().toLowerCase();
+    const rows = deckItems().slice().sort((a, b) => a.ports[0] - b.ports[0]).filter((p) =>
+      !q || portStr(p).includes(q) || p.name.toLowerCase().includes(q) || p.full.toLowerCase().includes(q) || trickFor(p).toLowerCase().includes(q));
+    $("#tricks-list").innerHTML = rows.length ? rows.map((p) => `<article class="trick" data-id="${p.id}">
+      <div class="trick-head"><b class="mono">${portStr(p)}</b><strong>${p.name}</strong></div>
+      ${builtIn(p) ? `<p class="trick-built"><span class="memo-label mono">Built-in</span> ${esc(builtIn(p))}</p>` : ""}
+      <label class="trick-mine"><span class="memo-label mono">Your trick</span>
+        <textarea rows="2" maxlength="240" data-trick="${p.id}" placeholder="Write your own way to remember ${portStr(p)}…">${esc(myTricks[p.id] || "")}</textarea>
+      </label>
+      <span class="trick-saved mono" aria-live="polite"></span>
+    </article>`).join("")
+      : `<p class="match-help">No tricks match "${esc(q)}". Try a number like 25 or a name like SMTP.</p>`;
+  }
   function setTab(t) {
     $$(".tab").forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle("active", on); b.setAttribute("aria-selected", on); });
-    ["cards", "table", "pairs"].forEach((k) => ($(`#tab-${k}`).hidden = k !== t));
+    ["cards", "table", "pairs", "tricks"].forEach((k) => ($(`#tab-${k}`).hidden = k !== t));
+    if (t === "tricks") renderTricks($("#tricks-search").value);
   }
 
   // ---------- CYBER SNAKE ----------
@@ -789,6 +816,18 @@
   $("#fc-shuffle").addEventListener("click", () => { study.cards = shuffle(study.cards); study.i = 0; renderCard(); });
   $("#fc-flipside").addEventListener("click", (e) => { study.svcFirst = !study.svcFirst; e.target.textContent = study.svcFirst ? "Show port first" : "Show service first"; renderCard(); });
   $("#ref-search").addEventListener("input", (e) => renderTable(e.target.value));
+  $("#tricks-search").addEventListener("input", (e) => renderTricks(e.target.value));
+  let trickT = 0;
+  $("#tricks-list").addEventListener("input", (e) => {
+    const ta = e.target.closest("textarea[data-trick]");
+    if (!ta) return;
+    const v = ta.value.trim();
+    if (v) myTricks[ta.dataset.trick] = v; else delete myTricks[ta.dataset.trick];
+    saveTricks();
+    const msg = ta.closest(".trick").querySelector(".trick-saved");
+    msg.textContent = store ? "Saved in this browser" : "Saved for this session";
+    clearTimeout(trickT); trickT = setTimeout(() => (msg.textContent = ""), 1600);
+  });
 
   document.addEventListener("keydown", (e) => {
     const k = e.key;

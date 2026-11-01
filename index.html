@@ -74,7 +74,7 @@
       <button class="mode-card" data-mode="study">
         <span class="mode-key mono">05</span>
         <h2>Study Deck</h2>
-        <p>Flashcards and a searchable reference table with transport, secure pairs, and exam tags.</p>
+        <p>Flashcards, a searchable reference table, secure pairs, and memory tricks you can write yourself.</p>
         <span class="mode-meta mono">reference · review</span>
       </button>
       <button class="mode-card hot" data-mode="snake">
@@ -196,6 +196,7 @@
         <button role="tab" class="tab active" data-tab="cards" aria-selected="true">Flashcards</button>
         <button role="tab" class="tab" data-tab="table" aria-selected="false">Reference</button>
         <button role="tab" class="tab" data-tab="pairs" aria-selected="false">Secure pairs</button>
+        <button role="tab" class="tab" data-tab="tricks" aria-selected="false">Memory tricks</button>
       </div>
     </div>
 
@@ -203,7 +204,7 @@
       <div class="flashcard" id="flashcard" tabindex="0" role="button" aria-label="Flip card">
         <div class="fc-inner">
           <div class="fc-face fc-front"><span class="mono fc-port" id="fc-front">443</span><span class="fc-hint mono">click or Space to flip</span></div>
-          <div class="fc-face fc-back"><span class="fc-name" id="fc-name">HTTPS</span><span class="fc-full" id="fc-full"></span><span class="fc-tip" id="fc-tip"></span><span class="mono fc-tags" id="fc-tags"></span></div>
+          <div class="fc-face fc-back"><span class="fc-name" id="fc-name">HTTPS</span><span class="fc-full" id="fc-full"></span><span class="fc-tip" id="fc-tip"></span><span class="fc-memo" id="fc-memo"></span><span class="mono fc-tags" id="fc-tags"></span></div>
         </div>
       </div>
       <div class="fc-controls">
@@ -228,6 +229,12 @@
     <div class="tab-panel" id="tab-pairs" hidden>
       <p class="match-help">Exam questions love "replace the insecure protocol." Learn these side by side.</p>
       <div class="pairs" id="pairs"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-tricks" hidden>
+      <p class="match-help">Mnemonics make ports stick. Read the built-in trick, or write your own. Example: SMTP 25 is "Send Mail To 25 People."</p>
+      <input id="tricks-search" class="search mono" placeholder="search port, service, or trick…" aria-label="Search memory tricks" />
+      <div class="tricks" id="tricks-list"></div>
     </div>
   </section>
 
