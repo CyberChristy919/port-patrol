@@ -84,7 +84,8 @@
     state.screen = name;
     $$(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
     window.scrollTo({ top: 0 });
-    if (name === "menu") { state.drillIds = null; renderSessionStats(); }
+    if (name === "menu") { state.drillIds = null; renderSessionStats(); renderProgressStrip(); resetCur(); }
+    if (name === "trophies") { renderTrophies(); progressStatus("Progress lasts for this visit. Download it to keep it, then load the file next time."); }
   }
   function startMode(mode) {
     state.lastMode = mode;
@@ -111,11 +112,13 @@
     state.deck = k;
     renderDeckUI();
     if (state.screen === "study") openStudy();
+    if (state.screen === "trophies") renderTrophies();
   }
 
   // ---------- Results ----------
-  function showResults({ mode, title, stats, missed }) {
+  function showResults({ mode, title, stats, missed, g }) {
     state.session.games++;
+    if (g) { g.drill = !!state.drillIds; gameEnd(g); } else $("#res-ach").innerHTML = "";
     $("#res-mode").textContent = `${mode} · ${state.drillIds ? "drill" : window.DECKS[state.deck].label}`;
     $("#res-title").textContent = title;
     $("#res-stats").innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
@@ -138,7 +141,189 @@
       [s.bestMatch ? s.bestMatch.toFixed(1) + "s" : "—", "best Patch Panel"], [s.bestSnake, "best Cyber Snake"],
     ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
   }
-  function track(ok) { state.session.answered++; if (ok) state.session.correct++; }
+  function track(ok, id) { state.session.answered++; if (ok) state.session.correct++; recordAnswer(id, ok); }
+
+
+  // ---------- ACHIEVEMENTS ----------
+  const BADGES = window.BADGES || [];
+  const RANKS = window.RANKS || [{ xp: 0, name: "Rookie" }];
+  const XPR = window.XP_RULES || { correct: 10, attempt: 2, game: 25, badge: { bronze: 50, silver: 100, gold: 200 } };
+  const MSTREAK = window.MASTERY_STREAK || 3;
+  const freshProgress = () => ({ xp: 0, games: 0, correct: 0, answered: 0, drills: 0, flips: 0, tricks: 0, modes: {}, badges: {}, mastery: {} });
+  let P = freshProgress();
+  let cur = { xp: 0, mastered: [], badges: [], rankFrom: 0 };
+  const resetCur = () => { cur = { xp: 0, mastered: [], badges: [], rankFrom: rankIndex(P.xp) }; };
+  function rankIndex(xp) { let i = 0; RANKS.forEach((r, k) => { if (xp >= r.xp) i = k; }); return i; }
+  function rankInfo(xp = P.xp) {
+    const i = rankIndex(xp), r = RANKS[i], next = RANKS[i + 1];
+    const pct = next ? Math.round(((xp - r.xp) / (next.xp - r.xp)) * 100) : 100;
+    return { i, name: r.name, next, pct };
+  }
+  function masteryStats() {
+    const m = { all: 0, total: ALL.length, N: { done: 0, total: 0 }, S: { done: 0, total: 0 }, C: { done: 0, total: 0 } };
+    ALL.forEach((p) => {
+      const done = !!(P.mastery[p.id] && P.mastery[p.id].mastered);
+      if (done) m.all++;
+      ["N", "S", "C"].forEach((c) => { if (p.exams.includes(c)) { m[c].total++; if (done) m[c].done++; } });
+    });
+    return m;
+  }
+  function addXP(n) { P.xp += n; cur.xp += n; }
+  function recordAnswer(id, ok) {
+    P.answered++;
+    addXP(ok ? XPR.correct : XPR.attempt);
+    if (ok) P.correct++;
+    if (!id || !byId[id]) return;
+    const m = P.mastery[id] || (P.mastery[id] = { streak: 0, right: 0, seen: 0, mastered: false });
+    m.seen++;
+    if (ok) {
+      m.right++; m.streak++;
+      if (!m.mastered && m.streak >= MSTREAK) { m.mastered = true; cur.mastered.push(id); }
+    } else m.streak = 0;
+  }
+  function checkBadges(g) {
+    const M = masteryStats();
+    const fresh = [];
+    BADGES.forEach((b) => {
+      if (P.badges[b.id]) return;
+      let ok = false;
+      try { ok = !!b.check(P, g || null, M); } catch (e) { ok = false; }
+      if (ok) { P.badges[b.id] = Date.now(); addXP(XPR.badge[b.tier] || 50); fresh.push(b); }
+    });
+    return fresh;
+  }
+  const badgeCount = () => Object.keys(P.badges).length;
+  function badgeHTML(b, earned, small) {
+    let prog = "";
+    if (!earned && b.progress) {
+      try { const [c, t] = b.progress(P, masteryStats()); prog = `<span class="b-prog"><i style="width:${Math.min(100, Math.round((c / t) * 100))}%"></i></span><span class="b-prog-t mono">${Math.min(c, t)} / ${t}</span>`; } catch (e) {}
+    }
+    return `<div class="badge ${earned ? "earned" : "locked"} tier-${b.tier}${small ? " small" : ""}" title="${esc(b.name)}: ${esc(b.desc)}">
+      <div class="b-hex mono" aria-hidden="true"><span>${esc(b.glyph)}</span></div>
+      <div class="b-body"><strong>${esc(b.name)}</strong><span class="b-desc">${esc(b.desc)}</span>
+      <span class="b-tier mono">${b.tier} · +${XPR.badge[b.tier] || 50} XP${earned ? " · earned" : ""}</span>${prog}</div>
+    </div>`;
+  }
+  function popToast(html, kind) {
+    const wrap = $("#ach-toasts");
+    const el = document.createElement("div");
+    el.className = "ach-toast " + (kind || "");
+    el.innerHTML = html;
+    wrap.appendChild(el);
+    setTimeout(() => el.classList.add("out"), 3800);
+    setTimeout(() => el.remove(), 4300);
+  }
+  // Out-of-game unlocks (study, tricks) toast immediately
+  function checkNow() {
+    const before = rankIndex(P.xp);
+    const fresh = checkBadges(null);
+    fresh.forEach((b) => popToast(`<span class="t-k mono">Badge unlocked</span><b>${esc(b.name)}</b><span>+${XPR.badge[b.tier]} XP</span>`, "badge"));
+    if (rankIndex(P.xp) > before) popToast(`<span class="t-k mono">Rank up</span><b>${esc(RANKS[rankIndex(P.xp)].name)}</b>`, "rank");
+    if (fresh.length) { beep("win"); renderProgressStrip(); }
+  }
+  // Called by every game when it ends
+  function gameEnd(g) {
+    P.games++;
+    P.modes[g.mode] = 1;
+    if (g.drill) P.drills++;
+    addXP(XPR.game);
+    cur.badges = checkBadges(g);
+    const r = rankInfo();
+    const up = r.i > cur.rankFrom;
+    const parts = [];
+    parts.push(`<div class="res-xp"><div class="res-xp-top"><span class="mono">+${cur.xp} XP</span><b>${esc(r.name)}${up ? ' <em class="rank-up mono">rank up</em>' : ""}</b><span class="mono">${P.xp} XP${r.next ? ` · ${r.next.xp - P.xp} to ${esc(r.next.name)}` : " · max rank"}</span></div>
+      <div class="xp-bar"><i style="width:${r.pct}%"></i></div></div>`);
+    if (cur.badges.length) parts.push(`<h3 class="mono">// badges unlocked</h3><div class="badge-grid compact">${cur.badges.map((b) => badgeHTML(b, true, true)).join("")}</div>`);
+    if (cur.mastered.length) parts.push(`<h3 class="mono">// ports mastered</h3><div class="mastered-list">${cur.mastered.map((id) => `<span class="m-chip"><b class="mono">${portStr(byId[id])}</b> ${esc(byId[id].name)}</span>`).join("")}</div>`);
+    if (!cur.badges.length) {
+      const near = nextBadges(2);
+      if (near.length) parts.push(`<h3 class="mono">// next up</h3><div class="badge-grid compact">${near.map((b) => badgeHTML(b, false, true)).join("")}</div>`);
+    }
+    $("#res-ach").innerHTML = parts.join("");
+    renderProgressStrip();
+    if (cur.badges.length || up) setTimeout(() => beep("win"), 250);
+    resetCur();
+  }
+  // Locked badges with the most progress, for "next up" suggestions
+  function nextBadges(n) {
+    const M = masteryStats();
+    return BADGES.filter((b) => !P.badges[b.id] && b.progress).map((b) => {
+      let f = 0; try { const [c, t] = b.progress(P, M); f = c / t; } catch (e) {}
+      return { b, f };
+    }).filter((x) => x.f > 0 && x.f < 1).sort((a, b) => b.f - a.f).slice(0, n).map((x) => x.b);
+  }
+  function renderProgressStrip() {
+    const r = rankInfo(), M = masteryStats();
+    $("#ps-rank").textContent = r.name;
+    $("#ps-xp").textContent = `${P.xp} XP${r.next ? ` · ${r.next.xp - P.xp} to ${r.next.name}` : ""}`;
+    $("#ps-bar").style.width = r.pct + "%";
+    $("#ps-badges").textContent = `${badgeCount()} / ${BADGES.length}`;
+    $("#ps-mastered").textContent = `${M.all} / ${M.total}`;
+    $("#trophy-count").textContent = badgeCount();
+  }
+  function renderTrophies() {
+    const r = rankInfo(), M = masteryStats();
+    $("#tr-rank").textContent = r.name;
+    $("#tr-xp").textContent = `${P.xp} XP`;
+    $("#tr-next").textContent = r.next ? `${r.next.xp - P.xp} XP to ${r.next.name}` : "Top rank reached";
+    $("#tr-bar").style.width = r.pct + "%";
+    $("#tr-ladder").innerHTML = RANKS.map((k, i) => `<li class="${i < r.i ? "past" : i === r.i ? "now" : ""}"><span class="mono">${k.xp}</span>${esc(k.name)}</li>`).join("");
+    $("#tr-stats").innerHTML = [
+      [`${badgeCount()} / ${BADGES.length}`, "badges"], [`${M.all} / ${M.total}`, "ports mastered"], [P.correct, "correct answers"], [P.games, "games played"],
+    ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+    const groups = [...new Set(BADGES.map((b) => b.group))];
+    $("#tr-badges").innerHTML = groups.map((gname) => `<div class="b-group"><h3 class="mono">// ${esc(gname.toLowerCase())}</h3><div class="badge-grid">${
+      BADGES.filter((b) => b.group === gname).map((b) => badgeHTML(b, !!P.badges[b.id])).join("")}</div></div>`).join("");
+    const d = window.DECKS[state.deck];
+    const items = deckItems().slice().sort((a, b) => a.ports[0] - b.ports[0]);
+    const done = items.filter((p) => P.mastery[p.id] && P.mastery[p.id].mastered).length;
+    $("#tr-mastery-title").textContent = `${d.label} deck: ${done} / ${items.length} mastered`;
+    $("#tr-mastery").innerHTML = items.map((p) => {
+      const m = P.mastery[p.id] || { streak: 0, mastered: false };
+      const lvl = m.mastered ? MSTREAK : Math.min(m.streak, MSTREAK);
+      return `<div class="m-tile${m.mastered ? " done" : ""}" title="${esc(p.name)}: ${m.mastered ? "mastered" : `${lvl} of ${MSTREAK} correct in a row`}">
+        <b class="mono">${portStr(p)}</b><span>${esc(p.name)}</span>
+        <span class="pips" aria-label="${lvl} of ${MSTREAK}">${Array.from({ length: MSTREAK }, (_, k) => `<i class="${k < lvl ? "on" : ""}"></i>`).join("")}</span></div>`;
+    }).join("");
+  }
+  // Save / load progress (the preview can't keep data between visits, so players download a file)
+  function progressStatus(t) { $("#tr-status").textContent = t; }
+  function downloadProgress() {
+    const out = { app: "Port Patrol", kind: "progress", version: 1, savedAt: new Date().toISOString(), progress: P, tricks: myTricks };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = "port-patrol-progress.json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    progressStatus("Progress downloaded. Load this file next time to pick up where you left off.");
+  }
+  function mergeProgress(src) {
+    if (!src || typeof src !== "object") return false;
+    const num = (k) => { if (typeof src[k] === "number" && isFinite(src[k])) P[k] = Math.max(P[k], Math.floor(src[k])); };
+    ["xp", "games", "correct", "answered", "drills", "flips", "tricks"].forEach(num);
+    ["modes", "badges"].forEach((k) => Object.keys(src[k] || {}).forEach((id) => { if (k === "modes" || BADGES.some((b) => b.id === id)) P[k][id] = P[k][id] || src[k][id] || 1; }));
+    Object.keys(src.mastery || {}).forEach((id) => {
+      if (!byId[id]) return;
+      const a = P.mastery[id] || { streak: 0, right: 0, seen: 0, mastered: false }, b = src.mastery[id] || {};
+      P.mastery[id] = { streak: Math.max(a.streak, +b.streak || 0), right: Math.max(a.right, +b.right || 0), seen: Math.max(a.seen, +b.seen || 0), mastered: a.mastered || !!b.mastered };
+    });
+    return true;
+  }
+  function loadProgressFile(f) {
+    f.text().then((txt) => {
+      const data = JSON.parse(txt);
+      let msg = [];
+      if (data && data.progress && mergeProgress(data.progress)) msg.push("progress");
+      const t = data && data.tricks;
+      if (t && typeof t === "object") {
+        let n = 0;
+        Object.keys(t).forEach((id) => { if (byId[id] && typeof t[id] === "string" && t[id].trim()) { myTricks[id] = t[id].trim().slice(0, 240); n++; } });
+        if (n) msg.push(`${n} memory trick${n === 1 ? "" : "s"}`);
+      }
+      P.tricks = Math.max(P.tricks, Object.keys(myTricks).length);
+      resetCur();
+      renderTrophies(); renderProgressStrip();
+      progressStatus(msg.length ? `Loaded ${msg.join(" and ")}.` : "No Port Patrol progress found in that file.");
+    }).catch(() => progressStatus("That file couldn't be read. Use a file downloaded from Port Patrol."));
+  }
 
   // ---------- QUIZ ----------
   const quiz = { qs: [], i: 0, score: 0, streak: 0, best: 0, correct: 0, missed: [], answered: false };
@@ -194,7 +379,7 @@
     quiz.answered = true;
     const q = quiz.qs[quiz.i];
     const ok = id === q.item.id;
-    track(ok);
+    track(ok, q.item.id);
     $$("#q-options .opt").forEach((b) => {
       b.disabled = true;
       if (b.dataset.id === q.item.id) b.classList.add("correct");
@@ -228,6 +413,7 @@
         title: pct === 100 ? "Perfect scan. Zero open findings." : pct >= 80 ? "Exam-ready territory." : pct >= 60 ? "Solid. Patch the gaps." : "Keep drilling. You've got this.",
         stats: [[pct + "%", "accuracy"], [quiz.score, "score"], [quiz.best, "best streak"]],
         missed: quiz.missed,
+        g: { mode: "quiz", pct, best: quiz.best, hints: quiz.hints || 0, score: quiz.score },
       });
       return;
     }
@@ -295,7 +481,7 @@
     if (!rush.running || rush.lock) return;
     if (id === rush.item.id) {
       rush.lock = true;
-      track(true);
+      track(true, rush.item.id);
       const remain = 1 - (performance.now() - rush.t0) / rush.dur;
       rush.score += 10 * rush.level + Math.round(remain * 10);
       rush.hits++;
@@ -309,7 +495,7 @@
   }
   function rushFail(id) {
     rush.lock = true;
-    track(false);
+    track(false, rush.item.id);
     rush.missed.push(rush.item.id);
     rush.lives--;
     beep("bad"); flash("bad");
@@ -330,6 +516,7 @@
           title: rush.score >= 300 ? "Firewall held. Elite SOC energy." : rush.score >= 120 ? "Good defense. A few got through." : "Breached. Reboot and retry.",
           stats: [[rush.score, "score"], [rush.hits, "packets identified"], [rush.level, "level reached"]],
           missed: rush.missed,
+          g: { mode: "rush", score: rush.score, level: rush.level, hits: rush.hits },
         });
       }, 1100);
     } else {
@@ -394,12 +581,12 @@
     void term.offsetWidth;
     blitz.tries++;
     if (!skip && it.ports.includes(val)) {
-      track(true);
+      track(true, it.id);
       blitz.score++; blitz.streak++; blitz.best = Math.max(blitz.best, blitz.streak);
       term.classList.add("good"); beep("ok");
       logBlitz(true, `${it.name} = ${portStr(it)}`);
     } else {
-      track(false);
+      track(false, it.id);
       blitz.streak = 0; blitz.missed.push(it.id);
       term.classList.add("shake"); beep("bad");
       logBlitz(false, `${it.name} = ${portStr(it)}${skip ? " (skipped)" : `, not ${val}`}`);
@@ -417,6 +604,7 @@
       title: blitz.score >= 25 ? "Muscle memory unlocked." : blitz.score >= 15 ? "Fast hands. Keep it up." : "Warm-up complete. Go again.",
       stats: [[blitz.score, "ports recalled"], [acc + "%", "accuracy"], [blitz.best, "best streak"]],
       missed: blitz.missed,
+      g: { mode: "blitz", score: blitz.score, best: blitz.best },
     });
   }
   function stopBlitz() { blitz.running = false; clearInterval(blitz.timer); }
@@ -461,7 +649,7 @@
     a.classList.remove("sel");
     match.sel = null;
     if (a.dataset.id === btn.dataset.id) {
-      track(true);
+      track(true, a.dataset.id);
       a.classList.add("done"); btn.classList.add("done"); a.disabled = btn.disabled = true;
       beep("ok");
       match.done++;
@@ -470,9 +658,9 @@
         setTimeout(nextPanel, 450);
       }
     } else {
-      track(false);
       match.misses++;
       const portBtn = a.dataset.side === "port" ? a : btn;
+      track(false, portBtn.dataset.id);
       match.missed.push(portBtn.dataset.id);
       $("#m-miss").textContent = match.misses;
       [a, btn].forEach((b) => { b.classList.remove("miss"); void b.offsetWidth; b.classList.add("miss"); });
@@ -489,6 +677,7 @@
       title: match.misses === 0 ? "Clean cable run. No misses." : match.misses <= 3 ? "Panel patched. Minor rework." : "Panel patched. Label those cables.",
       stats: [[secs.toFixed(1) + "s", "time"], [match.misses, "misses (+3s each)"], [final.toFixed(1) + "s", "final time"]],
       missed: match.missed,
+      g: { mode: "match", misses: match.misses, final, secs },
     });
   }
   function stopMatchTimer() { clearInterval(match.timer); }
@@ -496,6 +685,7 @@
   // ---------- STUDY ----------
   const study = { cards: [], i: 0, svcFirst: false };
   function openStudy() {
+    if (!P.modes.study) { P.modes.study = 1; checkNow(); }
     study.cards = deckItems().slice().sort((a, b) => a.ports[0] - b.ports[0]);
     study.i = Math.min(study.i, study.cards.length - 1);
     renderCard();
@@ -721,7 +911,7 @@
     const hit = snake.tokens.find((t) => t.y === head.y && (t.x === head.x || t.x + 1 === head.x));
     if (!hit) return;
     if (hit.correct) {
-      track(true); beep("ok");
+      track(true, snake.target.id); beep("ok");
       snake.eaten++;
       snake.score += Math.round(10 * snake.level * SNAKE_SPEEDS[snakeOpts.speed].mult);
       snake.grow += 2;
@@ -729,7 +919,7 @@
       toast(`+ ${snake.target.name} = ${portStr(snake.target)}`, false);
       newSnakeTarget();
     } else {
-      track(false); beep("bad");
+      track(false, snake.target.id); beep("bad");
       snake.missed.push(snake.target.id);
       snake.lives--;
       const w = $("#snake-wrap"); w.classList.remove("hit"); void w.offsetWidth; w.classList.add("hit"); setTimeout(() => w.classList.remove("hit"), 400);
@@ -754,6 +944,7 @@
         title: snake.eaten >= 15 ? "Apex predator of the packet layer." : snake.eaten >= 7 ? `${reason} Strong run.` : `${reason} Shed your skin and retry.`,
         stats: [[snake.score, "score"], [snake.eaten, "ports eaten"], [snake.body.length, "final length"], [snake.level, "level reached"]],
         missed: snake.missed,
+        g: { mode: "snake", score: snake.score, eaten: snake.eaten, speed: snakeOpts.speed, level: snake.level },
       });
     }, 1000);
   }
@@ -853,7 +1044,12 @@
   $("#snake-start").addEventListener("click", () => (snake.paused ? pauseSnake() : startSnake()));
   $("#b-form").addEventListener("submit", (e) => { e.preventDefault(); submitBlitz(false); });
   $("#b-input").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
-  $("#flashcard").addEventListener("click", () => $("#flashcard").classList.toggle("flipped"));
+  function flipCard() {
+    const fc = $("#flashcard");
+    fc.classList.toggle("flipped");
+    if (fc.classList.contains("flipped")) { P.flips++; if (P.flips === 25) checkNow(); }
+  }
+  $("#flashcard").addEventListener("click", flipCard);
   $("#fc-next").addEventListener("click", () => { study.i = (study.i + 1) % study.cards.length; renderCard(); });
   $("#fc-prev").addEventListener("click", () => { study.i = (study.i - 1 + study.cards.length) % study.cards.length; renderCard(); });
   $("#fc-shuffle").addEventListener("click", () => { study.cards = shuffle(study.cards); study.i = 0; renderCard(); });
@@ -890,6 +1086,8 @@
     if (!ta) return;
     const v = ta.value.trim();
     if (v) myTricks[ta.dataset.trick] = v; else delete myTricks[ta.dataset.trick];
+    const nT = Object.keys(myTricks).length;
+    if (nT > P.tricks) { P.tricks = nT; if (nT >= 3) checkNow(); }
     const msg = ta.closest(".trick").querySelector(".trick-saved");
     msg.textContent = "Saved for this session";
     clearTimeout(trickT); trickT = setTimeout(() => (msg.textContent = ""), 1600);
@@ -915,7 +1113,7 @@
       else if (k === " ") { e.preventDefault(); if (snake.running) pauseSnake(); else if (!$("#snake-overlay").hidden) startSnake(); }
       else if (k === "Enter" && !$("#snake-overlay").hidden) { e.preventDefault(); if (snake.paused) pauseSnake(); else if (!snake.running) startSnake(); }
     } else if (state.screen === "study" && !$("#tab-cards").hidden && document.activeElement !== $("#ref-search")) {
-      if (k === " ") { e.preventDefault(); $("#flashcard").classList.toggle("flipped"); }
+      if (k === " ") { e.preventDefault(); flipCard(); }
       else if (k === "ArrowRight") $("#fc-next").click();
       else if (k === "ArrowLeft") $("#fc-prev").click();
     }
@@ -923,6 +1121,11 @@
 
   // ---------- Init ----------
   $("#binary-bg").textContent = Array.from({ length: 6000 }, () => (Math.random() < 0.5 ? "0" : "1")).join("");
+  resetCur();
+  renderProgressStrip();
+  $("#tr-download").addEventListener("click", downloadProgress);
+  $("#tr-load").addEventListener("click", () => $("#tr-file").click());
+  $("#tr-file").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; if (f) loadProgressFile(f); e.target.value = ""; });
   renderDeckUI();
   show("menu");
 })();

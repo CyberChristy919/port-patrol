@@ -62,3 +62,17 @@ smtp: "Send Mail To 25 People.",
 ```
 
 They appear in Study Deck > Memory tricks, on the back of flashcards, after each quiz answer, and in the review list at the end of a game. Players can write their own trick for any port; it replaces the built-in trick on flashcards and in feedback. Player tricks last for the session; **Download my tricks** saves them as a JSON file and **Load tricks file** brings them back.
+
+## Achievements
+
+Open the Trophy Room from the trophy icon in the header or the progress strip on the menu.
+
+- **XP:** 10 per correct answer, 2 per attempt, 25 per finished game, plus 50 / 100 / 200 for bronze, silver, and gold badges.
+- **Ranks (9):** Script Kiddie, Packet Sniffer, Port Scanner, Help Desk Hero, Firewall Guardian, SOC Analyst, Threat Hunter, Network Architect, CISO.
+- **Badges (24):** grouped by mode (Port Quiz, Packet Rush, Port Blitz, Patch Panel, Cyber Snake, Study) plus lifetime and mastery goals. Badges are defined in `achievements.js`; each has a `check` function and an optional `progress` function.
+- **Port mastery:** a port is mastered after 3 correct answers in a row in any mode. Mastering every port in an exam deck unlocks that deck's Ready badge.
+- **Results screen:** shows XP earned, rank ups, new badges, newly mastered ports, and the closest badges to unlock next.
+
+### Saving progress
+
+Progress lasts for the current visit. Use **Download progress** in the Trophy Room to save a JSON file (it also includes your memory tricks), then **Load progress** next time to pick up where you left off. Loading merges with the current visit and keeps the higher values.

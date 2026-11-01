@@ -26,6 +26,10 @@
       <span class="sr-only">Exam deck</span>
       <select id="deck" aria-label="Exam deck"></select>
     </label>
+    <button class="icon-btn trophy-btn" data-go="trophies" aria-label="Trophy Room" title="Trophy Room">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+      <span class="trophy-count mono" id="trophy-count">0</span>
+    </button>
     <button id="mute" class="icon-btn" aria-label="Toggle sound" title="Toggle sound">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="x" d="m16 9 6 6m0-6-6 6"/></svg>
     </button>
@@ -45,6 +49,20 @@
     </div>
     <img class="hero-logo" src="logo.png" alt="Cyber Christy Digital Training shield logo" />
     </div>
+
+    <button class="progress-strip" data-go="trophies" aria-label="Open Trophy Room">
+
+      <span class="ps-rank"><span class="mono ps-k">rank</span><b id="ps-rank">Script Kiddie</b></span>
+
+      <span class="ps-xp"><span class="xp-bar"><i id="ps-bar"></i></span><span class="mono" id="ps-xp">0 XP</span></span>
+
+      <span class="ps-stat"><span class="mono ps-k">badges</span><b id="ps-badges">0</b></span>
+
+      <span class="ps-stat"><span class="mono ps-k">mastered</span><b id="ps-mastered">0</b></span>
+
+      <span class="ps-go mono">Trophy Room →</span>
+
+    </button>
 
     <div class="modes">
       <button class="mode-card" data-mode="quiz">
@@ -296,6 +314,7 @@
       <p class="eyebrow mono" id="res-mode">scan complete</p>
       <h2 id="res-title">Nice work</h2>
       <div class="res-stats" id="res-stats"></div>
+      <div class="res-ach" id="res-ach"></div>
       <div id="res-missed-wrap">
         <h3 class="mono">// ports to review</h3>
         <ul class="missed" id="res-missed"></ul>
@@ -307,13 +326,52 @@
       </div>
     </div>
   </section>
+  <!-- TROPHIES -->
+  <section id="screen-trophies" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="tr-actions">
+        <button class="ghost-btn" id="tr-download">Download progress</button>
+        <button class="ghost-btn" id="tr-load">Load progress</button>
+        <input type="file" id="tr-file" accept=".json,application/json" hidden />
+      </div>
+    </div>
+    <p class="trick-status mono" id="tr-status" aria-live="polite"></p>
+    <div class="tr-top">
+      <div class="card tr-rank">
+        <p class="eyebrow mono">// your rank</p>
+        <h2 id="tr-rank">Script Kiddie</h2>
+        <p class="tr-xp"><b class="mono" id="tr-xp">0 XP</b> <span id="tr-next"></span></p>
+        <div class="xp-bar big"><i id="tr-bar"></i></div>
+        <ol class="ladder" id="tr-ladder"></ol>
+      </div>
+      <div class="card tr-how">
+        <p class="eyebrow mono">// how to earn XP</p>
+        <ul>
+          <li><b class="mono">+10</b> every correct answer, in any mode</li>
+          <li><b class="mono">+2</b> every attempt, even wrong ones</li>
+          <li><b class="mono">+25</b> every finished game</li>
+          <li><b class="mono">+50 / 100 / 200</b> bronze, silver, and gold badges</li>
+          <li>Master a port by getting it right <b>3 times in a row</b> in any mode</li>
+        </ul>
+        <div class="stat-row" id="tr-stats"></div>
+      </div>
+    </div>
+    <h2 class="tr-h">Badges</h2>
+    <div id="tr-badges"></div>
+    <h2 class="tr-h">Port mastery</h2>
+    <p class="match-help" id="tr-mastery-title"></p>
+    <div class="m-grid" id="tr-mastery"></div>
+  </section>
 </main>
+<div class="ach-toasts" id="ach-toasts" aria-live="polite"></div>
 
 <footer class="foot mono">
   Port Patrol by Cyber Christy Digital Training. Network+ deck follows the official N10-009 objective 1.4 list. Security+ and CCNA decks cover commonly tested ports.
 </footer>
 
 <script src="data.js"></script>
+<script src="achievements.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
