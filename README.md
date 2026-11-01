@@ -20,7 +20,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 | Mode | What it trains |
 | --- | --- |
-| Port Quiz | 15 multiple-choice questions, port → service and service → port, with explanations |
+| Port Quiz | 15 multiple-choice questions, port → service and service → port, with explanations and memory tricks. Press `H` (or Show memory trick) for a hint before answering; hinted answers score 50 and don't add to your streak |
 | Packet Rush | Arcade: identify packets before they hit the firewall; speed increases each level |
 | Port Blitz | 60-second typed recall of port numbers |
 | Patch Panel | Match ports to services across 3 panels, timed |

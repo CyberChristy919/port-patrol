@@ -148,6 +148,7 @@
     quiz.qs = pool.map((item, i) => ({ item, dir: i % 2 === 0 ? (Math.random() < 0.5 ? "p2s" : "s2p") : (Math.random() < 0.5 ? "s2p" : "p2s") }));
     Object.assign(quiz, { i: 0, score: 0, streak: 0, best: 0, correct: 0, missed: [] });
     $("#q-total").textContent = quiz.qs.length;
+    quiz.hints = 0;
     show("quiz");
     renderQuiz();
   }
@@ -162,6 +163,11 @@
     $("#q-progress").style.width = (quiz.i / quiz.qs.length) * 100 + "%";
     $("#q-feedback").hidden = true;
     $("#q-next").hidden = true;
+    q.hinted = false;
+    $("#q-hint-box").hidden = true;
+    $("#q-hint-box").innerHTML = "";
+    $("#q-hint").hidden = !trickFor(q.item);
+    $("#q-hint").disabled = false;
     if (q.dir === "p2s") {
       $("#q-label").textContent = "Which service uses port";
       $("#q-prompt").textContent = portStr(q.item);
@@ -174,6 +180,15 @@
       $("#q-options").innerHTML = opts.map((o, k) => `<button class="opt port-opt" data-id="${o.id}"><span class="k">${k + 1}</span>${portStr(o)}</button>`).join("");
     }
   }
+  function showQuizHint() {
+    const q = quiz.qs[quiz.i];
+    if (!q || quiz.answered || q.hinted || !trickFor(q.item)) return;
+    q.hinted = true;
+    $("#q-hint").hidden = true;
+    const box = $("#q-hint-box");
+    box.innerHTML = `<span class="memo-label mono">Memory trick</span> ${esc(trickFor(q.item))}<span class="hint-cost mono">Hinted answers score 50 and don't add to your streak.</span>`;
+    box.hidden = false;
+  }
   function answerQuiz(id) {
     if (quiz.answered) return;
     quiz.answered = true;
@@ -185,13 +200,16 @@
       if (b.dataset.id === q.item.id) b.classList.add("correct");
       else if (b.dataset.id === id) b.classList.add("wrong");
     });
-    if (ok) { quiz.streak++; quiz.best = Math.max(quiz.best, quiz.streak); quiz.correct++; quiz.score += 100 + (quiz.streak - 1) * 10; beep("ok"); }
+    $("#q-hint").hidden = true;
+    $("#q-hint-box").hidden = true;
+    if (ok && q.hinted) { quiz.correct++; quiz.hints = (quiz.hints || 0) + 1; quiz.score += 50; beep("ok"); }
+    else if (ok) { quiz.streak++; quiz.best = Math.max(quiz.best, quiz.streak); quiz.correct++; quiz.score += 100 + (quiz.streak - 1) * 10; beep("ok"); }
     else { quiz.streak = 0; quiz.missed.push(q.item.id); beep("bad"); }
     const fb = $("#q-feedback");
     fb.className = "feedback" + (ok ? "" : " bad");
     const chosen = byId[id];
     const wrongNote = !ok && chosen ? `<p>You picked ${chosen.name}, which uses ${portStr(chosen)}.</p>` : "";
-    fb.innerHTML = `<div>${ok ? "Correct." : "Not quite."} <b>${q.item.name}</b> → <b>${portStr(q.item)}</b> (${q.item.proto})</div>${wrongNote}<p>${q.item.tip}</p>${trickFor(q.item) ? `<p class="memo-line"><span class="memo-label mono">Memory trick</span> ${esc(trickFor(q.item))}</p>` : ""}`;
+    fb.innerHTML = `<div>${ok ? (q.hinted ? "Correct, with a hint (+50)." : "Correct.") : "Not quite."} <b>${q.item.name}</b> → <b>${portStr(q.item)}</b> (${q.item.proto})</div>${wrongNote}<p>${q.item.tip}</p>${trickFor(q.item) ? `<p class="memo-line"><span class="memo-label mono">Memory trick</span> ${esc(trickFor(q.item))}</p>` : ""}`;
     fb.hidden = false;
     $("#q-score").textContent = quiz.score;
     $("#q-streak").textContent = quiz.streak;
@@ -826,6 +844,7 @@
   });
   $("#deck").addEventListener("change", (e) => setDeck(e.target.value));
   $("#mute").addEventListener("click", () => { state.muted = !state.muted; $("#mute").classList.toggle("muted", state.muted); });
+  $("#q-hint").addEventListener("click", showQuizHint);
   $("#q-next").addEventListener("click", nextQuiz);
   $("#rush-start").addEventListener("click", startRush);
   $("#blitz-start").addEventListener("click", startBlitz);
@@ -880,7 +899,8 @@
     const k = e.key;
     const num = /^[1-4]$/.test(k) ? parseInt(k, 10) - 1 : -1;
     if (state.screen === "quiz") {
-      if (num >= 0 && !quiz.answered) { const b = $$("#q-options .opt")[num]; if (b) answerQuiz(b.dataset.id); }
+      if ((k === "h" || k === "H") && !quiz.answered) showQuizHint();
+      else if (num >= 0 && !quiz.answered) { const b = $$("#q-options .opt")[num]; if (b) answerQuiz(b.dataset.id); }
       else if (k === "Enter" && quiz.answered) { e.preventDefault(); nextQuiz(); }
     } else if (state.screen === "rush") {
       if (!rush.running && !$("#rush-overlay").hidden && k === "Enter") { e.preventDefault(); startRush(); }
