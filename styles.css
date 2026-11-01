@@ -369,3 +369,23 @@ h1 { font-family: var(--mono); font-weight: 800; font-size: clamp(30px, 5vw, 52p
   #screen-study .tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   #screen-study .tab { white-space: nowrap; }
 }
+
+/* Snake speed settings */
+.snake-settings { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 18px; }
+.seg { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px; flex-wrap: wrap; justify-content: center; }
+.seg-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 8px 0 6px; }
+.seg button { background: none; border: 0; color: var(--muted); padding: 7px 12px; border-radius: 6px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.seg button:hover { color: var(--text); }
+.seg button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.seg button kbd { font-size: 10px; opacity: .7; }
+.ramp { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+.ramp input { width: 18px; height: 18px; accent-color: var(--accent); }
+.rush-overlay p.seg-note { font-size: 12px; margin: 0; color: var(--muted); }
+@media (max-width: 640px) { .seg button { padding: 7px 9px; } .seg button kbd { display: none; } .ramp { font-size: 13px; } }
+@media (max-width: 640px) {
+  #snake-overlay { overflow-y: auto; padding: 14px; justify-content: safe center; }
+  #snake-overlay h2 { font-size: 20px; margin-bottom: 4px; }
+  #snake-overlay > p { font-size: 13px; margin-bottom: 10px; }
+  .snake-settings { gap: 8px; margin-bottom: 12px; }
+  .rush-overlay p.seg-note { display: none; }
+}

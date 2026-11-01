@@ -553,8 +553,34 @@
   const OPP = { up: "down", down: "up", left: "right", right: "left" };
   const snake = { running: false, paused: false, over: false, raf: 0, acc: 0, last: 0, cols: 24, rows: 15, cell: 32, body: [], dir: "right", queue: [], grow: 0,
     tokens: [], target: null, targetPort: 0, score: 0, lives: 3, eaten: 0, level: 1, tick: 160, missed: [], pool: [], toastT: 0, pulse: 0 };
+  // Speed settings: ms per step. Lower = faster. With "speed up as I grow" on, each new segment shaves a little off.
+  const SNAKE_SPEEDS = {
+    slow:   { label: "Slow",   start: 240, min: 120, mult: 1 },
+    medium: { label: "Medium", start: 180, min: 95,  mult: 1.5 },
+    fast:   { label: "Fast",   start: 130, min: 70,  mult: 2 },
+  };
+  const snakeOpts = { speed: "slow", ramp: true };
+  const RAMP_SEGMENTS = 36; // reach top speed after about 18 ports (each port adds 2 segments)
+  function snakeTickFor(len) {
+    const sp = SNAKE_SPEEDS[snakeOpts.speed];
+    if (!snakeOpts.ramp) return sp.start;
+    const step = (sp.start - sp.min) / RAMP_SEGMENTS;
+    return Math.max(sp.min, Math.round(sp.start - Math.max(0, len - 3) * step));
+  }
+  function renderSnakeSpeedUI() {
+    $$("#snake-speed [data-speed]").forEach((b) => { const on = b.dataset.speed === snakeOpts.speed; b.classList.toggle("active", on); b.setAttribute("aria-checked", on); });
+    $("#snake-ramp").checked = snakeOpts.ramp;
+    $("#s-speed").textContent = SNAKE_SPEEDS[snakeOpts.speed].label;
+  }
+  function setSnakeSpeed(key) {
+    if (!SNAKE_SPEEDS[key]) return;
+    snakeOpts.speed = key;
+    snake.tick = snakeTickFor(snake.body.length || 3);
+    renderSnakeSpeedUI();
+  }
   const cvs = () => $("#snake-canvas");
   const SNAKE_INTRO = $("#snake-ov-text").textContent;
+  const SNAKE_INTRO_SHORT = "Steer into the port for the protocol shown. Wrong ports cost a life; walls and your tail end the run. Swipe or use the pad.";
 
   function sizeSnake() {
     const wrap = $("#snake-wrap");
@@ -577,7 +603,7 @@
     sizeSnake();
     resetSnakeState();
     $("#snake-ov-title").textContent = "Cyber Snake";
-    $("#snake-ov-text").textContent = SNAKE_INTRO;
+    $("#snake-ov-text").textContent = snake.cols < 20 ? SNAKE_INTRO_SHORT : SNAKE_INTRO;
     $("#snake-start").innerHTML = "Start <kbd>Enter</kbd>";
     $("#snake-overlay").hidden = false;
     drawSnake();
@@ -585,7 +611,8 @@
   }
   function resetSnakeState() {
     const cy = Math.floor(snake.rows / 2);
-    Object.assign(snake, { body: [{ x: 4, y: cy }, { x: 3, y: cy }, { x: 2, y: cy }], dir: "right", queue: [], grow: 0, score: 0, lives: 3, eaten: 0, level: 1, tick: 160, missed: [], pool: [], over: false, paused: false });
+    Object.assign(snake, { body: [{ x: 4, y: cy }, { x: 3, y: cy }, { x: 2, y: cy }], dir: "right", queue: [], grow: 0, score: 0, lives: 3, eaten: 0, level: 1, tick: snakeTickFor(3), missed: [], pool: [], over: false, paused: false });
+    renderSnakeSpeedUI();
     newSnakeTarget();
     updateSnakeHud();
   }
@@ -672,16 +699,15 @@
     if (head.x < 0 || head.y < 0 || head.x >= snake.cols || head.y >= snake.rows) return endSnake("You hit the firewall.");
     if (bodyToCheck.some((b) => b.x === head.x && b.y === head.y)) return endSnake("You ran into your own tail.");
     snake.body.unshift(head);
-    if (willGrow) snake.grow--; else snake.body.pop();
+    if (willGrow) { snake.grow--; snake.tick = snakeTickFor(snake.body.length); } else snake.body.pop();
     const hit = snake.tokens.find((t) => t.y === head.y && (t.x === head.x || t.x + 1 === head.x));
     if (!hit) return;
     if (hit.correct) {
       track(true); beep("ok");
       snake.eaten++;
-      snake.score += 10 * snake.level;
+      snake.score += Math.round(10 * snake.level * SNAKE_SPEEDS[snakeOpts.speed].mult);
       snake.grow += 2;
       snake.level = 1 + Math.floor(snake.eaten / 4);
-      snake.tick = Math.max(75, 160 - (snake.level - 1) * 14);
       toast(`+ ${snake.target.name} = ${portStr(snake.target)}`, false);
       newSnakeTarget();
     } else {
@@ -803,6 +829,8 @@
   $("#q-next").addEventListener("click", nextQuiz);
   $("#rush-start").addEventListener("click", startRush);
   $("#blitz-start").addEventListener("click", startBlitz);
+  $("#snake-speed").addEventListener("click", (e) => { const b = e.target.closest("[data-speed]"); if (b) setSnakeSpeed(b.dataset.speed); });
+  $("#snake-ramp").addEventListener("change", (e) => { snakeOpts.ramp = e.target.checked; snake.tick = snakeTickFor(snake.body.length || 3); });
   $("#snake-start").addEventListener("click", () => (snake.paused ? pauseSnake() : startSnake()));
   $("#b-form").addEventListener("submit", (e) => { e.preventDefault(); submitBlitz(false); });
   $("#b-input").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
@@ -863,6 +891,7 @@
     } else if (state.screen === "snake") {
       const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right" };
       if (map[k]) { e.preventDefault(); steer(map[k]); }
+      else if (/^[123]$/.test(k) && !$("#snake-overlay").hidden) setSnakeSpeed(["slow", "medium", "fast"][+k - 1]);
       else if (k === " ") { e.preventDefault(); if (snake.running) pauseSnake(); else if (!$("#snake-overlay").hidden) startSnake(); }
       else if (k === "Enter" && !$("#snake-overlay").hidden) { e.preventDefault(); if (snake.paused) pauseSnake(); else if (!snake.running) startSnake(); }
     } else if (state.screen === "study" && !$("#tab-cards").hidden && document.activeElement !== $("#ref-search")) {
