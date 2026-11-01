@@ -300,8 +300,8 @@ h1 { font-family: var(--mono); font-weight: 800; font-size: clamp(30px, 5vw, 52p
 .dp { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; font-size: 18px; color: var(--text); }
 .dp:active { background: var(--accent); color: var(--accent-ink); }
 .dp.up { grid-column: 2; grid-row: 1; }
-.dp.left { transform: none; } .dp.left, .dp.right, .dp.down { font-size: 18px; }
-.dp.left { rotate: -90deg; } .dp.right { rotate: 90deg; } .dp.down { rotate: 180deg; }
+.dp span { display: inline-block; pointer-events: none; }
+.dp.left span { rotate: -90deg; } .dp.right span { rotate: 90deg; } .dp.down span { rotate: 180deg; }
 .dp.left { grid-column: 1; grid-row: 2; }
 .dp.down { grid-column: 2; grid-row: 2; }
 .dp.right { grid-column: 3; grid-row: 2; }
