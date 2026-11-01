@@ -1,5 +1,9 @@
 # Port Patrol
 
+Built by **Cyber Christy Digital Training**.
+
+<img src="logo.png" alt="Cyber Christy Digital Training logo" width="160" />
+
 A browser game for learning TCP/UDP port numbers for CompTIA Network+, Security+, CCNA, and networking classes.
 
 ## Play locally

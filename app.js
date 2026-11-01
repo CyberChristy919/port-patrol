@@ -700,8 +700,8 @@
   function drawSnake(dead) {
     const c = cvs(); if (!c) return;
     const ctx = c.getContext("2d"), s = snake.cell, W = snake.cols * s, H = snake.rows * s;
-    ctx.fillStyle = "#0b1116"; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(92,200,255,0.06)"; ctx.lineWidth = 1;
+    ctx.fillStyle = "#181818"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(70,70,255,0.12)"; ctx.lineWidth = 1;
     for (let x = 0; x <= snake.cols; x++) { ctx.beginPath(); ctx.moveTo(x * s + .5, 0); ctx.lineTo(x * s + .5, H); ctx.stroke(); }
     for (let y = 0; y <= snake.rows; y++) { ctx.beginPath(); ctx.moveTo(0, y * s + .5); ctx.lineTo(W, y * s + .5); ctx.stroke(); }
     // tokens (all look alike, so the player has to know the answer)
@@ -710,31 +710,31 @@
     const fs = Math.max(11, Math.min(16, Math.floor(s * 0.48)));
     for (const t of snake.tokens) {
       const x = t.x * s + 2, y = t.y * s + 3, w = s * 2 - 4, h = s - 6;
-      ctx.shadowColor = "rgba(92,200,255,0.55)"; ctx.shadowBlur = 6 + glow * 8;
-      ctx.fillStyle = "#14222c"; roundRect(ctx, x, y, w, h, 5); ctx.fill();
+      ctx.shadowColor = "rgba(0,0,254,0.9)"; ctx.shadowBlur = 6 + glow * 8;
+      ctx.fillStyle = "#1e1e3d"; roundRect(ctx, x, y, w, h, 5); ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = "#5cc8ff"; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.fillStyle = "#e8f6ff"; ctx.font = `700 ${String(t.port).length > 4 ? fs - 2 : fs}px "JetBrains Mono", monospace`;
+      ctx.strokeStyle = "#8792ff"; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = "#ffffff"; ctx.font = `700 ${String(t.port).length > 4 ? fs - 2 : fs}px "JetBrains Mono", monospace`;
       ctx.fillText(String(t.port), x + w / 2, y + h / 2 + 1);
     }
     // snake body
     const n = snake.body.length;
     snake.body.forEach((b, i) => {
-      const k = 1 - i / Math.max(n, 6) * 0.6;
+      const k = 1 - i / Math.max(n, 6) * 0.45;
       const pad = i === 0 ? 1 : 2;
-      ctx.fillStyle = dead ? `rgba(255,93,108,${k})` : i === 0 ? "#ffb547" : `rgba(63,214,154,${k})`;
-      if (i === 0) { ctx.shadowColor = dead ? "#ff5d6c" : "#ffb547"; ctx.shadowBlur = 12; }
+      ctx.fillStyle = dead ? `rgba(255,0,140,${k})` : i === 0 ? "#FFEC01" : `rgba(30,40,255,${k})`;
+      if (i === 0) { ctx.shadowColor = dead ? "#FF008C" : "#FFEC01"; ctx.shadowBlur = 12; }
       roundRect(ctx, b.x * s + pad, b.y * s + pad, s - pad * 2, s - pad * 2, i === 0 ? 6 : 4); ctx.fill();
       ctx.shadowBlur = 0;
       if (i > 0 && i % 3 === 0) { // circuit trace detail
-        ctx.fillStyle = "rgba(10,15,19,0.55)"; ctx.fillRect(b.x * s + s / 2 - 1, b.y * s + 4, 2, s - 8);
+        ctx.fillStyle = "rgba(255,236,1,0.55)"; ctx.fillRect(b.x * s + s / 2 - 1, b.y * s + 4, 2, s - 8);
       }
     });
     // eyes
     const h0 = snake.body[0]; if (!h0) return;
     const [dx, dy] = DIRS[snake.dir];
     const cx = h0.x * s + s / 2, cy = h0.y * s + s / 2, off = s * 0.18;
-    ctx.fillStyle = "#1b1204";
+    ctx.fillStyle = "#1C1C1C";
     [[-1, 1]].forEach(() => {
       const ex1 = cx + dx * off - dy * off, ey1 = cy + dy * off + dx * off;
       const ex2 = cx + dx * off + dy * off, ey2 = cy + dy * off - dx * off;
@@ -816,6 +816,7 @@
   });
 
   // ---------- Init ----------
+  $("#binary-bg").textContent = Array.from({ length: 6000 }, () => (Math.random() < 0.5 ? "0" : "1")).join("");
   renderDeckUI();
   show("menu");
 })();

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Port Patrol — Learn Your Port Numbers</title>
+<title>Port Patrol by Cyber Christy Digital Training</title>
 <meta name="description" content="A browser game for learning TCP/UDP port numbers for CompTIA Network+, Security+, and CCNA." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%274%27 y=%279%27 width=%2724%27 height=%2716%27 rx=%272%27 fill=%27none%27 stroke=%27%23ffb547%27 stroke-width=%273%27/%3E%3C/svg%3E" />
+<link rel="icon" type="image/png" href="favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet" />
@@ -14,13 +14,11 @@
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
+<div class="binary-bg" aria-hidden="true" id="binary-bg"></div>
 
 <header class="topbar">
   <button class="brand" data-go="menu" aria-label="Port Patrol home">
-    <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2">
-      <rect x="4" y="9" width="24" height="16" rx="2"/>
-      <path d="M9 9V5h14v4M10 15h2M15 15h2M20 15h2M10 20h12"/>
-    </svg>
+    <img src="logo.png" alt="Cyber Christy Digital Training logo" />
     <span>PORT<b>PATROL</b></span>
   </button>
   <div class="topbar-right">
@@ -38,11 +36,14 @@
 
   <!-- MENU -->
   <section id="screen-menu" class="screen active">
+    <div class="hero-row">
     <div class="hero">
       <p class="eyebrow mono">$ sudo nmap -sV --study you</p>
       <h1>Know every port <span class="accent">before the exam does.</span></h1>
       <p class="lede">Six game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
       <div class="deck-pills" id="deck-pills" role="radiogroup" aria-label="Exam deck"></div>
+    </div>
+    <img class="hero-logo" src="logo.png" alt="Cyber Christy Digital Training shield logo" />
     </div>
 
     <div class="modes">
@@ -283,7 +284,7 @@
 </main>
 
 <footer class="foot mono">
-  Network+ deck follows the official N10-009 objective 1.4 list. Security+ and CCNA decks cover commonly tested ports.
+  Port Patrol by Cyber Christy Digital Training. Network+ deck follows the official N10-009 objective 1.4 list. Security+ and CCNA decks cover commonly tested ports.
 </footer>
 
 <script src="data.js"></script>
