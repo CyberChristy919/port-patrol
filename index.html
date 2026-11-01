@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Port Patrol — Learn Your Port Numbers</title>
+<meta name="description" content="A browser game for learning TCP/UDP port numbers for CompTIA Network+, Security+, and CCNA." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="topbar">
+  <button class="brand" data-go="menu" aria-label="Port Patrol home">
+    <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2">
+      <rect x="4" y="9" width="24" height="16" rx="2"/>
+      <path d="M9 9V5h14v4M10 15h2M15 15h2M20 15h2M10 20h12"/>
+    </svg>
+    <span>PORT<b>PATROL</b></span>
+  </button>
+  <div class="topbar-right">
+    <label class="deck-select">
+      <span class="sr-only">Exam deck</span>
+      <select id="deck" aria-label="Exam deck"></select>
+    </label>
+    <button id="mute" class="icon-btn" aria-label="Toggle sound" title="Toggle sound">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="x" d="m16 9 6 6m0-6-6 6"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- MENU -->
+  <section id="screen-menu" class="screen active">
+    <div class="hero">
+      <p class="eyebrow mono">$ sudo nmap -sV --study you</p>
+      <h1>Know every port <span class="accent">before the exam does.</span></h1>
+      <p class="lede">Five game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
+      <div class="deck-pills" id="deck-pills" role="radiogroup" aria-label="Exam deck"></div>
+    </div>
+
+    <div class="modes">
+      <button class="mode-card" data-mode="quiz">
+        <span class="mode-key mono">01</span>
+        <h2>Port Quiz</h2>
+        <p>Multiple choice in both directions: port to service and service to port. Explanations after every answer.</p>
+        <span class="mode-meta mono">15 questions · learn</span>
+      </button>
+      <button class="mode-card hot" data-mode="rush">
+        <span class="mode-key mono">02</span>
+        <h2>Packet Rush</h2>
+        <p>Packets race toward your firewall. Identify each one before it hits. Speed climbs as you score.</p>
+        <span class="mode-meta mono">3 lives · arcade</span>
+      </button>
+      <button class="mode-card" data-mode="blitz">
+        <span class="mode-key mono">03</span>
+        <h2>Port Blitz</h2>
+        <p>No options, no hints. A service appears and you type the port number. 60 seconds on the clock.</p>
+        <span class="mode-meta mono">60s · recall</span>
+      </button>
+      <button class="mode-card" data-mode="match">
+        <span class="mode-key mono">04</span>
+        <h2>Patch Panel</h2>
+        <p>Connect each port to its service. Clear three panels as fast as you can with the fewest misses.</p>
+        <span class="mode-meta mono">3 rounds · match</span>
+      </button>
+      <button class="mode-card" data-mode="study">
+        <span class="mode-key mono">05</span>
+        <h2>Study Deck</h2>
+        <p>Flashcards and a searchable reference table with transport, secure pairs, and exam tags.</p>
+        <span class="mode-meta mono">reference · review</span>
+      </button>
+    </div>
+
+    <div class="session-stats" id="session-stats" hidden>
+      <h3 class="mono">// this session</h3>
+      <div class="stat-row" id="session-row"></div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="screen-quiz" class="screen" aria-live="polite">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Q <b id="q-num">1</b>/<span id="q-total">15</span></span>
+        <span>Score <b id="q-score">0</b></span>
+        <span>Streak <b id="q-streak">0</b></span>
+      </div>
+    </div>
+    <div class="progress"><div id="q-progress"></div></div>
+    <div class="card question-card">
+      <p class="q-label mono" id="q-label">What service runs on</p>
+      <div class="q-prompt" id="q-prompt">443</div>
+      <p class="q-sub" id="q-sub"></p>
+      <div class="options" id="q-options"></div>
+      <div class="feedback" id="q-feedback" hidden></div>
+      <button class="primary-btn" id="q-next" hidden>Next <kbd>Enter</kbd></button>
+    </div>
+    <p class="hint mono">Keys 1–4 to answer · Enter for next</p>
+  </section>
+
+  <!-- RUSH -->
+  <section id="screen-rush" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Score <b id="r-score">0</b></span>
+        <span>Level <b id="r-level">1</b></span>
+        <span class="lives" id="r-lives" aria-label="Lives"></span>
+      </div>
+    </div>
+    <div class="rush-field" id="rush-field">
+      <div class="lane-label mono">INTERNET</div>
+      <div class="firewall" aria-hidden="true"><span class="mono">FIREWALL</span></div>
+      <div class="packet" id="packet" hidden>
+        <span class="pk-proto mono" id="pk-proto">TCP</span>
+        <span class="pk-port mono" id="pk-port">443</span>
+      </div>
+      <div class="rush-overlay" id="rush-overlay">
+        <h2>Packet Rush</h2>
+        <p>Each packet shows a destination port. Click the matching service (or press 1–4) before it reaches the firewall. Three breaches and you are out.</p>
+        <button class="primary-btn" id="rush-start">Start <kbd>Enter</kbd></button>
+      </div>
+      <div class="flash" id="rush-flash"></div>
+    </div>
+    <div class="options rush-options" id="r-options"></div>
+  </section>
+
+  <!-- BLITZ -->
+  <section id="screen-blitz" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Time <b id="b-time">60</b>s</span>
+        <span>Score <b id="b-score">0</b></span>
+        <span>Streak <b id="b-streak">0</b></span>
+      </div>
+    </div>
+    <div class="progress timer"><div id="b-progress"></div></div>
+    <div class="card question-card">
+      <div class="blitz-intro" id="b-intro">
+        <h2>Port Blitz</h2>
+        <p>Type the port number for each service and press Enter. For multi-port services, any correct port counts. Press Tab to skip.</p>
+        <button class="primary-btn" id="blitz-start">Start the clock <kbd>Enter</kbd></button>
+      </div>
+      <div class="blitz-play" id="b-play" hidden>
+        <p class="q-label mono">Port number for</p>
+        <div class="q-prompt" id="b-prompt">SSH</div>
+        <p class="q-sub" id="b-sub"></p>
+        <form id="b-form" class="terminal" autocomplete="off">
+          <span class="mono prompt-sym">port&gt;</span>
+          <input id="b-input" class="mono" inputmode="numeric" pattern="[0-9]*" maxlength="5" aria-label="Port number" />
+          <button type="submit" class="primary-btn small">Enter</button>
+        </form>
+        <div class="blitz-log mono" id="b-log" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MATCH -->
+  <section id="screen-match" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Panel <b id="m-round">1</b>/3</span>
+        <span>Time <b id="m-time">0.0</b>s</span>
+        <span>Misses <b id="m-miss">0</b></span>
+      </div>
+    </div>
+    <p class="match-help">Select a port, then select the service it belongs to.</p>
+    <div class="patch-panel">
+      <div class="col" id="m-ports" aria-label="Ports"></div>
+      <div class="col" id="m-svcs" aria-label="Services"></div>
+    </div>
+  </section>
+
+  <!-- STUDY -->
+  <section id="screen-study" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="cards" aria-selected="true">Flashcards</button>
+        <button role="tab" class="tab" data-tab="table" aria-selected="false">Reference</button>
+        <button role="tab" class="tab" data-tab="pairs" aria-selected="false">Secure pairs</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-cards">
+      <div class="flashcard" id="flashcard" tabindex="0" role="button" aria-label="Flip card">
+        <div class="fc-inner">
+          <div class="fc-face fc-front"><span class="mono fc-port" id="fc-front">443</span><span class="fc-hint mono">click or Space to flip</span></div>
+          <div class="fc-face fc-back"><span class="fc-name" id="fc-name">HTTPS</span><span class="fc-full" id="fc-full"></span><span class="fc-tip" id="fc-tip"></span><span class="mono fc-tags" id="fc-tags"></span></div>
+        </div>
+      </div>
+      <div class="fc-controls">
+        <button class="ghost-btn" id="fc-prev">← Prev</button>
+        <span class="mono" id="fc-count">1 / 20</span>
+        <button class="ghost-btn" id="fc-next">Next →</button>
+        <button class="ghost-btn" id="fc-shuffle">Shuffle</button>
+        <button class="ghost-btn" id="fc-flipside">Show service first</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-table" hidden>
+      <input id="ref-search" class="search mono" placeholder="search port or service…" aria-label="Search ports" />
+      <div class="table-wrap">
+        <table class="ref">
+          <thead><tr><th>Port</th><th>Service</th><th>Transport</th><th>Exams</th><th>Remember</th></tr></thead>
+          <tbody id="ref-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-pairs" hidden>
+      <p class="match-help">Exam questions love "replace the insecure protocol." Learn these side by side.</p>
+      <div class="pairs" id="pairs"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="screen-results" class="screen">
+    <div class="card results-card">
+      <p class="eyebrow mono" id="res-mode">scan complete</p>
+      <h2 id="res-title">Nice work</h2>
+      <div class="res-stats" id="res-stats"></div>
+      <div id="res-missed-wrap">
+        <h3 class="mono">// ports to review</h3>
+        <ul class="missed" id="res-missed"></ul>
+      </div>
+      <div class="res-actions">
+        <button class="primary-btn" id="res-again">Play again</button>
+        <button class="ghost-btn" id="res-drill">Drill my misses</button>
+        <button class="ghost-btn" data-go="menu">Menu</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot mono">
+  Network+ deck follows the official N10-009 objective 1.4 list. Security+ and CCNA decks cover commonly tested ports.
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
