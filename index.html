@@ -233,7 +233,13 @@
 
     <div class="tab-panel" id="tab-tricks" hidden>
       <p class="match-help">Mnemonics make ports stick. Read the built-in trick, or write your own. Example: SMTP 25 is "Send Mail To 25 People."</p>
-      <input id="tricks-search" class="search mono" placeholder="search port, service, or trick…" aria-label="Search memory tricks" />
+      <div class="tricks-bar">
+        <input id="tricks-search" class="search mono" placeholder="search port, service, or trick…" aria-label="Search memory tricks" />
+        <button class="ghost-btn" id="tricks-download">Download my tricks</button>
+        <button class="ghost-btn" id="tricks-load">Load tricks file</button>
+        <input type="file" id="tricks-file" accept=".json,application/json" hidden />
+      </div>
+      <p class="trick-status mono" id="tricks-status" aria-live="polite">Your tricks last for this session. Download them to keep them, then load the file next time.</p>
       <div class="tricks" id="tricks-list"></div>
     </div>
   </section>

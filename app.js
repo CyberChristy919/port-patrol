@@ -26,12 +26,8 @@
     const code = window.DECKS[state.deck].code;
     return code ? ALL.filter((p) => p.exams.includes(code)) : ALL.slice();
   };
-  // Memory tricks: built-in plus the player's own (saved in this browser when storage is available)
-  const MY_KEY = "portpatrol.mytricks";
-  const store = (() => { try { const t = "__pp"; window.localStorage.setItem(t, t); window.localStorage.removeItem(t); return window.localStorage; } catch (e) { return null; } })();
+  // Memory tricks: built-in plus the player's own (kept for this session; download/load to keep them)
   let myTricks = {};
-  try { myTricks = JSON.parse((store && store.getItem(MY_KEY)) || "{}") || {}; } catch (e) { myTricks = {}; }
-  const saveTricks = () => { try { if (store) store.setItem(MY_KEY, JSON.stringify(myTricks)); } catch (e) {} };
   const builtIn = (p) => (window.MNEMONICS || {})[p.id] || "";
   const trickFor = (p) => myTricks[p.id] || builtIn(p);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -818,14 +814,37 @@
   $("#ref-search").addEventListener("input", (e) => renderTable(e.target.value));
   $("#tricks-search").addEventListener("input", (e) => renderTricks(e.target.value));
   let trickT = 0;
+  const trickStatus = (t) => { $("#tricks-status").textContent = t; };
+  $("#tricks-download").addEventListener("click", () => {
+    const n = Object.keys(myTricks).length;
+    if (!n) return trickStatus("Write at least one trick first.");
+    const out = { app: "Port Patrol", kind: "memory-tricks", version: 1, tricks: myTricks };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = "port-patrol-my-tricks.json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    trickStatus(`Downloaded ${n} trick${n === 1 ? "" : "s"}.`);
+  });
+  $("#tricks-load").addEventListener("click", () => $("#tricks-file").click());
+  $("#tricks-file").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    f.text().then((txt) => {
+      const data = JSON.parse(txt);
+      const t = (data && data.tricks) || data;
+      let n = 0;
+      Object.keys(t || {}).forEach((id) => { if (byId[id] && typeof t[id] === "string" && t[id].trim()) { myTricks[id] = t[id].trim().slice(0, 240); n++; } });
+      renderTricks($("#tricks-search").value);
+      trickStatus(n ? `Loaded ${n} trick${n === 1 ? "" : "s"}.` : "No tricks found in that file.");
+    }).catch(() => trickStatus("That file couldn't be read. Use a file downloaded from Port Patrol."));
+    e.target.value = "";
+  });
   $("#tricks-list").addEventListener("input", (e) => {
     const ta = e.target.closest("textarea[data-trick]");
     if (!ta) return;
     const v = ta.value.trim();
     if (v) myTricks[ta.dataset.trick] = v; else delete myTricks[ta.dataset.trick];
-    saveTricks();
     const msg = ta.closest(".trick").querySelector(".trick-saved");
-    msg.textContent = store ? "Saved in this browser" : "Saved for this session";
+    msg.textContent = "Saved for this session";
     clearTimeout(trickT); trickT = setTimeout(() => (msg.textContent = ""), 1600);
   });
 

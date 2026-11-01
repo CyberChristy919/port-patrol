@@ -344,6 +344,11 @@ h1 { font-family: var(--mono); font-weight: 800; font-size: clamp(30px, 5vw, 52p
 }
 
 /* Memory tricks */
+.tricks-bar { display: flex; gap: 8px; align-items: stretch; }
+.tricks-bar .search { margin-bottom: 0; flex: 1; }
+.tricks-bar .ghost-btn { white-space: nowrap; }
+.trick-status { font-size: 12px; color: var(--muted); margin: 8px 0 14px; min-height: 1.2em; }
+@media (max-width: 640px) { .tricks-bar { flex-wrap: wrap; } .tricks-bar .search { flex-basis: 100%; } .tricks-bar .ghost-btn { flex: 1; } }
 .memo-label { display: inline-block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 2px 6px; margin-right: 6px; vertical-align: 1px; }
 .memo-line { margin-top: 8px; }
 .memo-mini { display: block; color: var(--accent); font-size: 13px; margin-top: 4px; }
