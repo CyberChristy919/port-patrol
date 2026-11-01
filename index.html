@@ -41,7 +41,7 @@
     <div class="hero">
       <p class="eyebrow mono">$ sudo nmap -sV --study you</p>
       <h1>Know every port <span class="accent">before the exam does.</span></h1>
-      <p class="lede">Five game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
+      <p class="lede">Six game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
       <div class="deck-pills" id="deck-pills" role="radiogroup" aria-label="Exam deck"></div>
     </div>
 
@@ -75,6 +75,12 @@
         <h2>Study Deck</h2>
         <p>Flashcards and a searchable reference table with transport, secure pairs, and exam tags.</p>
         <span class="mode-meta mono">reference · review</span>
+      </button>
+      <button class="mode-card hot" data-mode="snake">
+        <span class="mode-key mono">06</span>
+        <h2>Cyber Snake</h2>
+        <p>A protocol name appears. Steer the snake into the right port number and dodge the decoys. Walls and your own tail end the run.</p>
+        <span class="mode-meta mono">3 lives · arcade</span>
       </button>
     </div>
 
@@ -222,6 +228,39 @@
       <p class="match-help">Exam questions love "replace the insecure protocol." Learn these side by side.</p>
       <div class="pairs" id="pairs"></div>
     </div>
+  </section>
+
+  <!-- SNAKE -->
+  <section id="screen-snake" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Score <b id="s-score">0</b></span>
+        <span>Level <b id="s-level">1</b></span>
+        <span class="lives" id="s-lives" aria-label="Lives"></span>
+      </div>
+    </div>
+    <div class="snake-target" aria-live="polite">
+      <p class="q-label mono">Eat the port for</p>
+      <div class="snake-name mono" id="s-name">HTTPS</div>
+      <p class="q-sub" id="s-sub">HTTP Secure · TCP</p>
+    </div>
+    <div class="snake-wrap" id="snake-wrap">
+      <canvas id="snake-canvas" aria-label="Cyber Snake game board"></canvas>
+      <div class="snake-toast mono" id="s-toast" hidden></div>
+      <div class="rush-overlay" id="snake-overlay">
+        <h2 id="snake-ov-title">Cyber Snake</h2>
+        <p id="snake-ov-text">A protocol name appears above the board. Steer into the matching port number. Wrong ports cost a life; hitting a wall or your own tail ends the run. Arrow keys or WASD to steer, Space to pause. On a phone, swipe or use the pad.</p>
+        <button class="primary-btn" id="snake-start">Start <kbd>Enter</kbd></button>
+      </div>
+    </div>
+    <div class="dpad" aria-label="Direction pad">
+      <button class="dp up" data-dir="up" aria-label="Up">▲</button>
+      <button class="dp left" data-dir="left" aria-label="Left">▲</button>
+      <button class="dp down" data-dir="down" aria-label="Down">▲</button>
+      <button class="dp right" data-dir="right" aria-label="Right">▲</button>
+    </div>
+    <p class="hint mono">Arrows / WASD to steer · Space to pause</p>
   </section>
 
   <!-- RESULTS -->

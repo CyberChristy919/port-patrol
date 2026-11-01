@@ -12,7 +12,7 @@
     muted: false,
     lastMode: null,
     drillIds: null,
-    session: { games: 0, answered: 0, correct: 0, bestRush: 0, bestBlitz: 0, bestMatch: null },
+    session: { games: 0, answered: 0, correct: 0, bestRush: 0, bestBlitz: 0, bestMatch: null, bestSnake: 0 },
   };
 
   // ---------- Helpers ----------
@@ -88,8 +88,9 @@
     else if (mode === "blitz") openBlitz();
     else if (mode === "match") startMatch();
     else if (mode === "study") openStudy();
+    else if (mode === "snake") openSnake();
   }
-  function stopAll() { stopRush(); stopBlitz(); stopMatchTimer(); }
+  function stopAll() { stopRush(); stopBlitz(); stopMatchTimer(); if (typeof stopSnake === "function") stopSnake(); }
 
   // ---------- Deck UI ----------
   function renderDeckUI() {
@@ -129,7 +130,7 @@
     const acc = s.answered ? Math.round((s.correct / s.answered) * 100) + "%" : "—";
     $("#session-row").innerHTML = [
       [s.games, "games played"], [acc, "answer accuracy"], [s.bestRush, "best Packet Rush"], [s.bestBlitz, "best Port Blitz"],
-      [s.bestMatch ? s.bestMatch.toFixed(1) + "s" : "—", "best Patch Panel"],
+      [s.bestMatch ? s.bestMatch.toFixed(1) + "s" : "—", "best Patch Panel"], [s.bestSnake, "best Cyber Snake"],
     ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
   }
   function track(ok) { state.session.answered++; if (ok) state.session.correct++; }
@@ -525,6 +526,237 @@
     ["cards", "table", "pairs"].forEach((k) => ($(`#tab-${k}`).hidden = k !== t));
   }
 
+  // ---------- CYBER SNAKE ----------
+  const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const OPP = { up: "down", down: "up", left: "right", right: "left" };
+  const snake = { running: false, paused: false, over: false, raf: 0, acc: 0, last: 0, cols: 24, rows: 15, cell: 32, body: [], dir: "right", queue: [], grow: 0,
+    tokens: [], target: null, targetPort: 0, score: 0, lives: 3, eaten: 0, level: 1, tick: 160, missed: [], pool: [], toastT: 0, pulse: 0 };
+  const cvs = () => $("#snake-canvas");
+  const SNAKE_INTRO = $("#snake-ov-text").textContent;
+
+  function sizeSnake() {
+    const wrap = $("#snake-wrap");
+    const w = wrap.clientWidth - 2;
+    const narrow = w < 560;
+    snake.cols = narrow ? 14 : 24;
+    snake.rows = narrow ? 16 : 15;
+    const availH = Math.max(narrow ? 300 : 330, window.innerHeight - (narrow ? 360 : 330));
+    snake.cell = Math.max(narrow ? 18 : 22, Math.floor(Math.min(w / snake.cols, availH / snake.rows, 40)));
+    const c = cvs(), dpr = window.devicePixelRatio || 1;
+    c.width = snake.cols * snake.cell * dpr;
+    c.height = snake.rows * snake.cell * dpr;
+    c.style.width = snake.cols * snake.cell + "px";
+    c.style.height = snake.rows * snake.cell + "px";
+    c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function openSnake() {
+    stopSnake();
+    show("snake");
+    sizeSnake();
+    resetSnakeState();
+    $("#snake-ov-title").textContent = "Cyber Snake";
+    $("#snake-ov-text").textContent = SNAKE_INTRO;
+    $("#snake-start").innerHTML = "Start <kbd>Enter</kbd>";
+    $("#snake-overlay").hidden = false;
+    drawSnake();
+    $("#snake-start").focus({ preventScroll: true });
+  }
+  function resetSnakeState() {
+    const cy = Math.floor(snake.rows / 2);
+    Object.assign(snake, { body: [{ x: 4, y: cy }, { x: 3, y: cy }, { x: 2, y: cy }], dir: "right", queue: [], grow: 0, score: 0, lives: 3, eaten: 0, level: 1, tick: 160, missed: [], pool: [], over: false, paused: false });
+    newSnakeTarget();
+    updateSnakeHud();
+  }
+  function updateSnakeHud() {
+    $("#s-score").textContent = snake.score;
+    $("#s-level").textContent = snake.level;
+    $("#s-lives").innerHTML = [0, 1, 2].map((i) => `<i class="${i < snake.lives ? "" : "lost"}"></i>`).join("");
+  }
+  function cellFree(x, y) {
+    if (x < 0 || y < 0 || x + 1 >= snake.cols || y >= snake.rows) return false;
+    const head = snake.body[0];
+    if (Math.abs(head.x - x) + Math.abs(head.y - y) < 4) return false;
+    // keep clear of the cells directly ahead of the head
+    const [dx, dy] = DIRS[snake.dir];
+    for (let k = 1; k <= 3; k++) { const ax = head.x + dx * k, ay = head.y + dy * k; if (ay === y && (ax === x || ax === x + 1)) return false; }
+    if (snake.body.some((b) => b.y === y && (b.x === x || b.x === x + 1))) return false;
+    // tokens need a one-cell gap around them
+    return !snake.tokens.some((t) => Math.abs(t.y - y) <= 1 && x <= t.x + 2 && x + 1 >= t.x - 1);
+  }
+  function spawnToken(item, port, correct) {
+    for (let tries = 0; tries < 500; tries++) {
+      const x = (Math.random() * (snake.cols - 1)) | 0, y = (Math.random() * snake.rows) | 0;
+      if (cellFree(x, y)) { snake.tokens.push({ x, y, item, port, correct }); return; }
+    }
+  }
+  function newSnakeTarget() {
+    if (!snake.pool.length) snake.pool = shuffle(deckItems());
+    let item = snake.pool.pop();
+    if (snake.target && item.id === snake.target.id && snake.pool.length) item = snake.pool.pop();
+    snake.target = item;
+    snake.targetPort = pick(item.ports);
+    snake.tokens = [];
+    spawnToken(item, snake.targetPort, true);
+    const decoys = distractors(item, deckItems(), Math.min(5, 2 + snake.level));
+    decoys.forEach((d) => spawnToken(d, pick(d.ports), false));
+    $("#s-name").textContent = item.name;
+    $("#s-sub").textContent = `${item.full} · ${item.proto}`;
+  }
+  function toast(msg, bad) {
+    const t = $("#s-toast");
+    t.textContent = msg;
+    t.className = "snake-toast mono" + (bad ? " bad" : "");
+    t.hidden = false;
+    clearTimeout(snake.toastT);
+    snake.toastT = setTimeout(() => (t.hidden = true), bad ? 2200 : 1300);
+  }
+  function startSnake() {
+    if (snake.over) { sizeSnake(); resetSnakeState(); }
+    $("#snake-overlay").hidden = true;
+    snake.running = true; snake.paused = false;
+    snake.last = performance.now(); snake.acc = 0;
+    cancelAnimationFrame(snake.raf);
+    snake.raf = requestAnimationFrame(snakeLoop);
+  }
+  function pauseSnake() {
+    if (!snake.running || snake.over) return;
+    snake.paused = !snake.paused;
+    $("#snake-ov-title").textContent = "Paused";
+    $("#snake-ov-text").textContent = "Press Space or Resume to keep going.";
+    $("#snake-start").innerHTML = "Resume <kbd>Space</kbd>";
+    $("#snake-overlay").hidden = !snake.paused;
+    if (!snake.paused) { snake.last = performance.now(); snake.raf = requestAnimationFrame(snakeLoop); }
+  }
+  function steer(d) {
+    if (!snake.running || snake.paused) return;
+    const lastDir = snake.queue.length ? snake.queue[snake.queue.length - 1] : snake.dir;
+    if (d === lastDir || d === OPP[lastDir] || snake.queue.length >= 2) return;
+    snake.queue.push(d);
+  }
+  function snakeLoop(now) {
+    if (!snake.running || snake.paused) return;
+    snake.acc += now - snake.last; snake.last = now;
+    snake.pulse = now;
+    while (snake.acc >= snake.tick && snake.running) { snake.acc -= snake.tick; stepSnake(); }
+    drawSnake();
+    if (snake.running) snake.raf = requestAnimationFrame(snakeLoop);
+  }
+  function stepSnake() {
+    if (snake.queue.length) snake.dir = snake.queue.shift();
+    const [dx, dy] = DIRS[snake.dir];
+    const head = { x: snake.body[0].x + dx, y: snake.body[0].y + dy };
+    const willGrow = snake.grow > 0;
+    const bodyToCheck = willGrow ? snake.body : snake.body.slice(0, -1);
+    if (head.x < 0 || head.y < 0 || head.x >= snake.cols || head.y >= snake.rows) return endSnake("You hit the firewall.");
+    if (bodyToCheck.some((b) => b.x === head.x && b.y === head.y)) return endSnake("You ran into your own tail.");
+    snake.body.unshift(head);
+    if (willGrow) snake.grow--; else snake.body.pop();
+    const hit = snake.tokens.find((t) => t.y === head.y && (t.x === head.x || t.x + 1 === head.x));
+    if (!hit) return;
+    if (hit.correct) {
+      track(true); beep("ok");
+      snake.eaten++;
+      snake.score += 10 * snake.level;
+      snake.grow += 2;
+      snake.level = 1 + Math.floor(snake.eaten / 4);
+      snake.tick = Math.max(75, 160 - (snake.level - 1) * 14);
+      toast(`+ ${snake.target.name} = ${portStr(snake.target)}`, false);
+      newSnakeTarget();
+    } else {
+      track(false); beep("bad");
+      snake.missed.push(snake.target.id);
+      snake.lives--;
+      const w = $("#snake-wrap"); w.classList.remove("hit"); void w.offsetWidth; w.classList.add("hit"); setTimeout(() => w.classList.remove("hit"), 400);
+      toast(`${hit.port} is ${hit.item.name}. ${snake.target.name} = ${portStr(snake.target)}`, true);
+      snake.tokens = snake.tokens.filter((t) => t !== hit);
+      spawnToken(hit.item, hit.port, false);
+      if (snake.lives <= 0) { updateSnakeHud(); return endSnake("Out of lives."); }
+    }
+    updateSnakeHud();
+  }
+  function endSnake(reason) {
+    snake.running = false; snake.over = true;
+    cancelAnimationFrame(snake.raf);
+    beep("bad");
+    drawSnake(true);
+    if (!snake.missed.includes(snake.target.id) && reason !== "Out of lives.") snake.missed.push(snake.target.id);
+    state.session.bestSnake = Math.max(state.session.bestSnake || 0, snake.score);
+    setTimeout(() => {
+      if (state.screen !== "snake") return;
+      showResults({
+        mode: "Cyber Snake",
+        title: snake.eaten >= 15 ? "Apex predator of the packet layer." : snake.eaten >= 7 ? `${reason} Strong run.` : `${reason} Shed your skin and retry.`,
+        stats: [[snake.score, "score"], [snake.eaten, "ports eaten"], [snake.body.length, "final length"], [snake.level, "level reached"]],
+        missed: snake.missed,
+      });
+    }, 1000);
+  }
+  function stopSnake() { snake.running = false; cancelAnimationFrame(snake.raf); clearTimeout(snake.toastT); const t = $("#s-toast"); if (t) t.hidden = true; }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function drawSnake(dead) {
+    const c = cvs(); if (!c) return;
+    const ctx = c.getContext("2d"), s = snake.cell, W = snake.cols * s, H = snake.rows * s;
+    ctx.fillStyle = "#0b1116"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(92,200,255,0.06)"; ctx.lineWidth = 1;
+    for (let x = 0; x <= snake.cols; x++) { ctx.beginPath(); ctx.moveTo(x * s + .5, 0); ctx.lineTo(x * s + .5, H); ctx.stroke(); }
+    for (let y = 0; y <= snake.rows; y++) { ctx.beginPath(); ctx.moveTo(0, y * s + .5); ctx.lineTo(W, y * s + .5); ctx.stroke(); }
+    // tokens (all look alike, so the player has to know the answer)
+    const glow = 0.5 + 0.5 * Math.sin(snake.pulse / 300);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const fs = Math.max(11, Math.min(16, Math.floor(s * 0.48)));
+    for (const t of snake.tokens) {
+      const x = t.x * s + 2, y = t.y * s + 3, w = s * 2 - 4, h = s - 6;
+      ctx.shadowColor = "rgba(92,200,255,0.55)"; ctx.shadowBlur = 6 + glow * 8;
+      ctx.fillStyle = "#14222c"; roundRect(ctx, x, y, w, h, 5); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#5cc8ff"; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = "#e8f6ff"; ctx.font = `700 ${String(t.port).length > 4 ? fs - 2 : fs}px "JetBrains Mono", monospace`;
+      ctx.fillText(String(t.port), x + w / 2, y + h / 2 + 1);
+    }
+    // snake body
+    const n = snake.body.length;
+    snake.body.forEach((b, i) => {
+      const k = 1 - i / Math.max(n, 6) * 0.6;
+      const pad = i === 0 ? 1 : 2;
+      ctx.fillStyle = dead ? `rgba(255,93,108,${k})` : i === 0 ? "#ffb547" : `rgba(63,214,154,${k})`;
+      if (i === 0) { ctx.shadowColor = dead ? "#ff5d6c" : "#ffb547"; ctx.shadowBlur = 12; }
+      roundRect(ctx, b.x * s + pad, b.y * s + pad, s - pad * 2, s - pad * 2, i === 0 ? 6 : 4); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (i > 0 && i % 3 === 0) { // circuit trace detail
+        ctx.fillStyle = "rgba(10,15,19,0.55)"; ctx.fillRect(b.x * s + s / 2 - 1, b.y * s + 4, 2, s - 8);
+      }
+    });
+    // eyes
+    const h0 = snake.body[0]; if (!h0) return;
+    const [dx, dy] = DIRS[snake.dir];
+    const cx = h0.x * s + s / 2, cy = h0.y * s + s / 2, off = s * 0.18;
+    ctx.fillStyle = "#1b1204";
+    [[-1, 1]].forEach(() => {
+      const ex1 = cx + dx * off - dy * off, ey1 = cy + dy * off + dx * off;
+      const ex2 = cx + dx * off + dy * off, ey2 = cy + dy * off - dx * off;
+      const r = Math.max(2, s * 0.09);
+      ctx.fillRect(ex1 - r, ey1 - r, r * 2, r * 2); ctx.fillRect(ex2 - r, ey2 - r, r * 2, r * 2);
+    });
+  }
+
+  // swipe controls
+  (() => {
+    let sx = 0, sy = 0;
+    const wrap = $("#snake-wrap");
+    wrap.addEventListener("touchstart", (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; }, { passive: true });
+    wrap.addEventListener("touchmove", (e) => { if (snake.running) e.preventDefault(); }, { passive: false });
+    wrap.addEventListener("touchend", (e) => {
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+      steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+    });
+  })();
+  window.addEventListener("resize", () => { if (state.screen === "snake" && !snake.running) { sizeSnake(); if (snake.over) resetSnakeState(); else { snake.tokens = []; newSnakeTarget(); } drawSnake(); } });
+
   // ---------- Events ----------
   document.addEventListener("click", (e) => {
     const go = e.target.closest("[data-go]");
@@ -539,6 +771,8 @@
     if (ro) return answerRush(ro.dataset.id);
     const jack = e.target.closest(".jack");
     if (jack) return clickJack(jack);
+    const dp = e.target.closest(".dp");
+    if (dp) return steer(dp.dataset.dir);
     const tab = e.target.closest(".tab");
     if (tab) return setTab(tab.dataset.tab);
   });
@@ -547,6 +781,7 @@
   $("#q-next").addEventListener("click", nextQuiz);
   $("#rush-start").addEventListener("click", startRush);
   $("#blitz-start").addEventListener("click", startBlitz);
+  $("#snake-start").addEventListener("click", () => (snake.paused ? pauseSnake() : startSnake()));
   $("#b-form").addEventListener("submit", (e) => { e.preventDefault(); submitBlitz(false); });
   $("#b-input").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
   $("#flashcard").addEventListener("click", () => $("#flashcard").classList.toggle("flipped"));
@@ -568,6 +803,11 @@
     } else if (state.screen === "blitz") {
       if (!blitz.running && k === "Enter" && !$("#b-intro").hidden) { e.preventDefault(); startBlitz(); }
       else if (blitz.running && k === "Tab") { e.preventDefault(); submitBlitz(true); }
+    } else if (state.screen === "snake") {
+      const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right" };
+      if (map[k]) { e.preventDefault(); steer(map[k]); }
+      else if (k === " ") { e.preventDefault(); if (snake.running) pauseSnake(); else if (!$("#snake-overlay").hidden) startSnake(); }
+      else if (k === "Enter" && !$("#snake-overlay").hidden) { e.preventDefault(); if (snake.paused) pauseSnake(); else if (!snake.running) startSnake(); }
     } else if (state.screen === "study" && !$("#tab-cards").hidden && document.activeElement !== $("#ref-search")) {
       if (k === " ") { e.preventDefault(); $("#flashcard").classList.toggle("flipped"); }
       else if (k === "ArrowRight") $("#fc-next").click();
