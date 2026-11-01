@@ -511,10 +511,9 @@
   }
   function renderPairs() {
     const pairs = [
-      ["ftp", "sftp"], ["telnet", "ssh"], ["http", "https"], ["smtp", "smtps"], ["ldap", "ldaps"], ["pop3", "pop3s"], ["imap", "imaps"],
+      ["ftp", "sftp"], ["telnet", "ssh"], ["http", "https"], ["smtp", "smtps"], ["ldap", "ldaps"], ["pop3", "pop3s"], ["imap", "imaps"], ["sip", "sips"],
     ].map(([a, b]) => [byId[a], byId[b]]);
     const extra = [
-      [{ name: "SIP", p: "5060" }, { name: "SIP-TLS", p: "5061" }],
       [{ name: "SNMPv1/v2c", p: "161/162" }, { name: "SNMPv3", p: "161/162" }],
       [{ name: "FTP", p: "20/21" }, { name: "FTPS", p: "989/990" }],
     ];

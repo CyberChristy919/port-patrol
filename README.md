@@ -31,10 +31,10 @@ Every mode ends with a "ports to review" list and a "Drill my misses" button.
 
 ## Decks
 
-- **Network+** — the 20 entries in the official N10-009 objective 1.4 list
+- **Network+** — the 20 entries in the official N10-009 objective 1.4 list (21 cards, because SIP 5060 and SIPS 5061 are split so the secure version can be drilled on its own)
 - **Security+** — commonly tested ports for SY0-701
 - **CCNA** — commonly tested ports for 200-301
-- **Full deck** — everything (40 entries)
+- **Full deck** — everything (41 entries)
 
 ## Add or edit ports
 
