@@ -33,6 +33,7 @@ python3 -m http.server 8000   # then open http://localhost:8000
 | Port Blitz | 60-second typed recall of port numbers |
 | Patch Panel | Match ports to services across 3 panels, timed |
 | Cyber Snake | Classic snake: a protocol name appears, steer into its port number and avoid decoy ports; walls and your tail end the run. Pick Slow (default), Medium, or Fast; with "speed up as the snake grows" on, it gets a little faster with every segment |
+| Packet's Port Adventure | A side-scrolling platformer. Packet, a little data packet with suction-cup hands, runs, jumps, and climbs walls through five levels. Each level has locked gates; walk up to the door with the right port number and press Up to open the path. Wrong doors cost a heart. Episode 1 ends with a boss fight against the Man-in-the-Middle |
 | Study Deck | Flashcards, searchable reference table, secure/insecure pairs, memory tricks (built-in mnemonics plus your own, with download/load to keep them) |
 
 Every mode ends with a "ports to review" list and a "Drill my misses" button.
@@ -59,6 +60,7 @@ All port data lives in `data.js`. Each entry looks like:
 - `1`–`4` answer, `Enter` next/start
 - Port Blitz: `Enter` submit, `Tab` skip
 - Cyber Snake: arrow keys / WASD to steer, `Space` to pause, `1` / `2` / `3` to pick Slow / Medium / Fast on the start or pause screen; swipe or on-screen pad on phones
+- Packet's Port Adventure: arrow keys or A / D to move, `Space` (or `Z`) to jump, Up to climb and to go through a door, Down to climb down or drop through a platform, `P` or `Esc` to pause, `1`-`5` to pick an unlocked level; on-screen buttons on phones. Jump into a wall and hold toward it to stick to it
 - Flashcards: `Space` flip, arrow keys to move
 
 ## Memory tricks
@@ -77,7 +79,7 @@ Open the Trophy Room from the trophy icon in the header or the progress strip on
 
 - **XP:** 10 per correct answer, 2 per attempt, 25 per finished game, plus 50 / 100 / 200 for bronze, silver, and gold badges.
 - **Ranks (9):** Script Kiddie, Packet Sniffer, Port Scanner, Help Desk Hero, Firewall Guardian, SOC Analyst, Threat Hunter, Network Architect, CISO.
-- **Badges (24):** grouped by mode (Port Quiz, Packet Rush, Port Blitz, Patch Panel, Cyber Snake, Study) plus lifetime and mastery goals. Badges are defined in `achievements.js`; each has a `check` function and an optional `progress` function.
+- **Badges (28):** grouped by mode (Port Quiz, Packet Rush, Port Blitz, Patch Panel, Cyber Snake, Port Adventure, Study) plus lifetime and mastery goals. Badges are defined in `achievements.js`; each has a `check` function and an optional `progress` function.
 - **Port mastery:** a port is mastered after 3 correct answers in a row in any mode. Mastering every port in an exam deck unlocks that deck's Ready badge.
 - **Results screen:** shows XP earned, rank ups, new badges, newly mastered ports, and the closest badges to unlock next.
 
@@ -101,7 +103,7 @@ Code is released under the [MIT License](LICENSE). Copyright (c) 2026 Cyber Chri
 
 ## Releasing updates
 
-`index.html` loads `styles.css`, `data.js`, `achievements.js`, and `app.js` with a `?v=` version tag. Bump that tag whenever those files change (images such as `icon-512.png` and `port-patrol-logo.png` use their own `?v=` tag) so returning players get the new version instead of a cached copy.
+`index.html` loads `styles.css`, `data.js`, `achievements.js`, `app.js`, and `adventure.js` with a `?v=` version tag. Bump that tag whenever those files change (images such as `icon-512.png` and `port-patrol-logo.png` use their own `?v=` tag) so returning players get the new version instead of a cached copy.
 
 ## Logo files
 

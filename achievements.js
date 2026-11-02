@@ -25,9 +25,9 @@ window.BADGES = [
   { id: "first_boot", name: "First Boot", tier: "bronze", glyph: "01", group: "Getting started",
     desc: "Finish your first game.", check: (P) => P.games >= 1 },
   { id: "full_stack", name: "Full Stack", tier: "silver", glyph: "FS", group: "Getting started",
-    desc: "Finish a game in all five game modes and open the Study Deck.",
-    check: (P) => ["quiz", "rush", "blitz", "match", "snake", "study"].every((m) => P.modes[m]),
-    progress: (P) => [["quiz", "rush", "blitz", "match", "snake", "study"].filter((m) => P.modes[m]).length, 6] },
+    desc: "Finish a game in every game mode and open the Study Deck.",
+    check: (P) => ["quiz", "rush", "blitz", "match", "snake", "adventure", "study"].every((m) => P.modes[m]),
+    progress: (P) => [["quiz", "rush", "blitz", "match", "snake", "adventure", "study"].filter((m) => P.modes[m]).length, 7] },
   { id: "dedicated", name: "Dedicated", tier: "silver", glyph: "10", group: "Getting started",
     desc: "Play 10 games.", check: (P) => P.games >= 10, progress: (P) => [P.games, 10] },
   { id: "patch_tuesday", name: "Patch Tuesday", tier: "bronze", glyph: "PT", group: "Getting started",
@@ -65,6 +65,19 @@ window.BADGES = [
     desc: "Eat 5 correct ports in one run on Fast speed.", check: (P, g) => g && g.mode === "snake" && g.speed === "fast" && g.eaten >= 5 },
   { id: "apex_predator", name: "Apex Predator", tier: "gold", glyph: "S20", group: "Cyber Snake",
     desc: "Eat 20 correct ports in one Cyber Snake run.", check: (P, g) => g && g.mode === "snake" && g.eaten >= 20 },
+
+  // Packet's Port Adventure
+  { id: "suction_cups", name: "Suction Cups", tier: "bronze", glyph: "1-1", group: "Port Adventure",
+    desc: "Clear Router Ridge, the first level of Packet's Port Adventure.", check: (P) => (P.plat || 0) >= 1 },
+  { id: "clean_delivery", name: "Clean Delivery", tier: "silver", glyph: "DLV", group: "Port Adventure",
+    desc: "Clear a level with two or more port doors without picking a wrong door.",
+    check: (P, g) => g && g.mode === "adventure" && g.cleared && g.gates >= 2 && g.wrong === 0 },
+  { id: "untouchable", name: "Untouchable", tier: "gold", glyph: "<3", group: "Port Adventure",
+    desc: "Clear level 1-3 or later without losing a heart.",
+    check: (P, g) => g && g.mode === "adventure" && g.cleared && g.level >= 3 && g.hurt === 0 },
+  { id: "family_reunion", name: "Family Reunion", tier: "gold", glyph: "EP1", group: "Port Adventure",
+    desc: "Beat the Man-in-the-Middle and finish Episode 1.", check: (P) => (P.plat || 0) >= 5,
+    progress: (P) => [P.plat || 0, 5] },
 
   // Study
   { id: "bookworm", name: "Bookworm", tier: "bronze", glyph: "FC", group: "Study",

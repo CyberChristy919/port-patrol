@@ -12,7 +12,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Port Patrol" />
 <meta property="og:title" content="Port Patrol: learn your port numbers" />
-<meta property="og:description" content="Six free browser games for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA." />
+<meta property="og:description" content="Seven free browser games for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA." />
 <meta property="og:url" content="https://port-patrol.pplx.app/" />
 <meta property="og:image" content="https://port-patrol.pplx.app/og-image.png" />
 <meta property="og:image:width" content="1200" />
@@ -20,13 +20,13 @@
 <meta property="og:image:alt" content="Port Patrol logo: a blue shield with a yellow network port, the number 443, and a pink PATROL ribbon" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Port Patrol: learn your port numbers" />
-<meta name="twitter:description" content="Six free browser games for drilling port numbers for Network+, Security+, and CCNA." />
+<meta name="twitter:description" content="Seven free browser games for drilling port numbers for Network+, Security+, and CCNA." />
 <meta name="twitter:image" content="https://port-patrol.pplx.app/og-image.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet" />
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=20261102b" />
+<link rel="stylesheet" href="styles.css?v=20261103a" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -60,7 +60,7 @@
     <div class="hero">
       <p class="eyebrow mono">$ sudo nmap -sV --study you</p>
       <h1>Know every port <span class="accent">before the exam does.</span></h1>
-      <p class="lede">Six game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
+      <p class="lede">Seven game modes for drilling TCP and UDP port numbers for CompTIA Network+, Security+, and CCNA. Pick your exam deck at the top, then choose a mode.</p>
       <div class="deck-pills" id="deck-pills" role="radiogroup" aria-label="Exam deck"></div>
     </div>
     <img class="hero-logo" src="port-patrol-logo.png?v=2" alt="Port Patrol logo: a shield with a network port, the number 443, and a PATROL ribbon" width="640" height="640" />
@@ -116,6 +116,12 @@
         <h2>Cyber Snake</h2>
         <p>A protocol name appears. Steer the snake into the right port number and dodge the decoys. Walls and your own tail end the run.</p>
         <span class="mode-meta mono">3 lives · arcade</span>
+      </button>
+      <button class="mode-card hot wide" data-mode="adventure">
+        <span class="mode-key mono">07</span>
+        <h2>Packet's Port Adventure</h2>
+        <p>A side-scrolling platformer. Run, jump, and climb walls with suction-cup hands, then deliver each packet through the door with the right port. Five levels and a boss in Episode 1.</p>
+        <span class="mode-meta mono">5 levels · platformer · new</span>
       </button>
     </div>
 
@@ -324,6 +330,48 @@
     <p class="hint mono">Arrows / WASD to steer · Space to pause</p>
   </section>
 
+  <!-- ADVENTURE -->
+  <section id="screen-adventure" class="screen">
+    <div class="hud">
+      <button class="ghost-btn" data-go="menu">← Menu</button>
+      <div class="hud-stats mono">
+        <span>Level <b id="a-level">1-1</b></span>
+        <span>Score <b id="a-score">0</b></span>
+        <span>Bits <b id="a-bits">0/0</b></span>
+        <span class="lives hearts" id="a-hearts" aria-label="Hearts"></span>
+        <button class="ghost-btn small-btn" id="adv-pause" type="button">Pause</button>
+      </div>
+    </div>
+    <div class="snake-target adv-target" aria-live="polite">
+      <p class="q-label mono" id="a-label">Deliver the packet to the port for</p>
+      <div class="snake-name mono" id="a-name">SMTP</div>
+      <p class="q-sub" id="a-sub">Simple Mail Transfer Protocol · TCP</p>
+    </div>
+    <div class="snake-wrap adv-wrap" id="adv-wrap">
+      <canvas id="adv-canvas" aria-label="Packet's Port Adventure game screen"></canvas>
+      <div class="snake-toast mono adv-toast" id="a-toast" hidden></div>
+      <div class="rush-overlay" id="adv-overlay">
+        <h2 id="adv-ov-title">Packet's Port Adventure</h2>
+        <p id="adv-ov-text"></p>
+        <p class="adv-story" id="adv-story">Arrow keys or A/D to move, Space to jump, Up to climb and to go through doors, P to pause. Jump into a wall and hold toward it to stick.</p>
+        <div class="adv-levels" id="adv-levels"></div>
+        <button class="primary-btn" id="adv-start">Play 1-1 <kbd>Enter</kbd></button>
+      </div>
+    </div>
+    <div class="adv-pad" aria-label="Touch controls">
+      <div class="adv-pad-l">
+        <button class="ap" data-k="left" aria-label="Left">◀</button>
+        <button class="ap" data-k="right" aria-label="Right">▶</button>
+      </div>
+      <div class="adv-pad-r">
+        <button class="ap" data-k="down" aria-label="Climb down">▼</button>
+        <button class="ap" data-k="up" aria-label="Climb up or enter door">▲</button>
+        <button class="ap jump" data-k="jump" aria-label="Jump">JUMP</button>
+      </div>
+    </div>
+    <p class="hint mono">Arrows / A-D move · Space jumps · Up climbs and enters doors · P pauses</p>
+  </section>
+
   <!-- RESULTS -->
   <section id="screen-results" class="screen">
     <div class="card results-card">
@@ -393,8 +441,9 @@
   <span class="foot-brand"><img src="logo.png" alt="Cyber Christy Digital Training logo" width="22" height="22" /> Port Patrol by Cyber Christy Digital Training.</span> Network+ deck follows the official N10-009 objective 1.4 list. Security+ and CCNA decks cover commonly tested ports.
 </footer>
 
-<script src="data.js?v=20261102b"></script>
-<script src="achievements.js?v=20261102b"></script>
-<script src="app.js?v=20261102b"></script>
+<script src="data.js?v=20261103a"></script>
+<script src="achievements.js?v=20261103a"></script>
+<script src="app.js?v=20261103a"></script>
+<script src="adventure.js?v=20261103a"></script>
 </body>
 </html>

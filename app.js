@@ -12,7 +12,7 @@
     muted: false,
     lastMode: null,
     drillIds: null,
-    session: { games: 0, answered: 0, correct: 0, bestRush: 0, bestBlitz: 0, bestMatch: null, bestSnake: 0 },
+    session: { games: 0, answered: 0, correct: 0, bestRush: 0, bestBlitz: 0, bestMatch: null, bestSnake: 0, bestAdv: 0 },
   };
 
   // ---------- Helpers ----------
@@ -67,7 +67,7 @@
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const o = actx.createOscillator(), g = actx.createGain();
       const now = actx.currentTime;
-      const cfg = { ok: [660, 990, "triangle"], bad: [220, 140, "sawtooth"], tick: [880, 880, "square"], win: [520, 1240, "triangle"] }[type];
+      const cfg = { jump: [300, 600, "square"], ok: [660, 990, "triangle"], bad: [220, 140, "sawtooth"], tick: [880, 880, "square"], win: [520, 1240, "triangle"] }[type];
       o.type = cfg[2];
       o.frequency.setValueAtTime(cfg[0], now);
       o.frequency.exponentialRampToValueAtTime(cfg[1], now + 0.14);
@@ -95,8 +95,9 @@
     else if (mode === "match") startMatch();
     else if (mode === "study") openStudy();
     else if (mode === "snake") openSnake();
+    else if (mode === "adventure" && window.PPAdventure) window.PPAdventure.open();
   }
-  function stopAll() { stopRush(); stopBlitz(); stopMatchTimer(); if (typeof stopSnake === "function") stopSnake(); }
+  function stopAll() { stopRush(); stopBlitz(); stopMatchTimer(); if (typeof stopSnake === "function") stopSnake(); if (window.PPAdventure) window.PPAdventure.stop(); }
 
   // ---------- Deck UI ----------
   function renderDeckUI() {
@@ -138,7 +139,7 @@
     const acc = s.answered ? Math.round((s.correct / s.answered) * 100) + "%" : "—";
     $("#session-row").innerHTML = [
       [s.games, "games played"], [acc, "answer accuracy"], [s.bestRush, "best Packet Rush"], [s.bestBlitz, "best Port Blitz"],
-      [s.bestMatch ? s.bestMatch.toFixed(1) + "s" : "—", "best Patch Panel"], [s.bestSnake, "best Cyber Snake"],
+      [s.bestMatch ? s.bestMatch.toFixed(1) + "s" : "—", "best Patch Panel"], [s.bestSnake, "best Cyber Snake"], [s.bestAdv, "best Port Adventure"],
     ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
   }
   function track(ok, id) { state.session.answered++; if (ok) state.session.correct++; recordAnswer(id, ok); }
@@ -149,7 +150,7 @@
   const RANKS = window.RANKS || [{ xp: 0, name: "Rookie" }];
   const XPR = window.XP_RULES || { correct: 10, attempt: 2, game: 25, badge: { bronze: 50, silver: 100, gold: 200 } };
   const MSTREAK = window.MASTERY_STREAK || 3;
-  const freshProgress = () => ({ xp: 0, games: 0, correct: 0, answered: 0, drills: 0, flips: 0, tricks: 0, modes: {}, badges: {}, mastery: {} });
+  const freshProgress = () => ({ xp: 0, games: 0, correct: 0, answered: 0, drills: 0, flips: 0, tricks: 0, plat: 0, modes: {}, badges: {}, mastery: {} });
   let P = freshProgress();
   let cur = { xp: 0, mastered: [], badges: [], rankFrom: 0 };
   const resetCur = () => { cur = { xp: 0, mastered: [], badges: [], rankFrom: rankIndex(P.xp) }; };
@@ -310,13 +311,13 @@
   })();
   function packProgress() {
     const m = Object.keys(P.mastery).map((id) => { const x = P.mastery[id]; return [id, x.streak, x.right, x.seen, x.mastered ? 1 : 0].join("."); }).join("~");
-    return b64e(JSON.stringify({ v: 1, n: [P.xp, P.games, P.correct, P.answered, P.drills, P.flips, P.tricks], mo: Object.keys(P.modes), b: Object.keys(P.badges), m }));
+    return b64e(JSON.stringify({ v: 1, n: [P.xp, P.games, P.correct, P.answered, P.drills, P.flips, P.tricks, P.plat], mo: Object.keys(P.modes), b: Object.keys(P.badges), m }));
   }
   function unpackProgress(str) {
     const d = JSON.parse(b64d(str));
     if (!d || d.v !== 1 || !Array.isArray(d.n)) return null;
     const out = freshProgress();
-    ["xp", "games", "correct", "answered", "drills", "flips", "tricks"].forEach((k, i) => { out[k] = +d.n[i] || 0; });
+    ["xp", "games", "correct", "answered", "drills", "flips", "tricks", "plat"].forEach((k, i) => { out[k] = +d.n[i] || 0; });
     (d.mo || []).forEach((k) => { out.modes[k] = 1; });
     (d.b || []).forEach((k) => { out.badges[k] = 1; });
     String(d.m || "").split("~").filter(Boolean).forEach((row) => {
@@ -377,7 +378,7 @@
   function mergeProgress(src) {
     if (!src || typeof src !== "object") return false;
     const num = (k) => { if (typeof src[k] === "number" && isFinite(src[k])) P[k] = Math.max(P[k], Math.floor(src[k])); };
-    ["xp", "games", "correct", "answered", "drills", "flips", "tricks"].forEach(num);
+    ["xp", "games", "correct", "answered", "drills", "flips", "tricks", "plat"].forEach(num);
     ["modes", "badges"].forEach((k) => Object.keys(src[k] || {}).forEach((id) => { if (k === "modes" || BADGES.some((b) => b.id === id)) P[k][id] = P[k][id] || src[k][id] || 1; }));
     Object.keys(src.mastery || {}).forEach((id) => {
       if (!byId[id]) return;
@@ -1199,6 +1200,13 @@
       else if (k === "ArrowLeft") $("#fc-prev").click();
     }
   });
+
+  // Shared helpers for add-on modes (adventure.js)
+  window.PP = {
+    state, show, deckItems, distractors, shuffle, pick, portStr, track, showResults, beep, trickFor, esc,
+    progress: () => P,
+    setBest: (n) => { state.session.bestAdv = Math.max(state.session.bestAdv || 0, n); },
+  };
 
   // ---------- Init ----------
   $("#binary-bg").textContent = Array.from({ length: 6000 }, () => (Math.random() < 0.5 ? "0" : "1")).join("");
