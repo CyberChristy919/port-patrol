@@ -97,7 +97,7 @@ The same links are in the footer of the game.
 
 ## License
 
-Code is released under the [MIT License](LICENSE). The Cyber Christy Digital Training name and logo are not covered by the license; forks should use their own branding.
+Code is released under the [MIT License](LICENSE). Copyright (c) 2026 Cyber Christy LLC. The Port Patrol and Cyber Christy Digital Training names and logos are not covered by the license; forks should use their own branding.
 
 ## Releasing updates
 
