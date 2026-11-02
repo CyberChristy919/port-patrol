@@ -86,3 +86,7 @@ On the live site (pplx.app, GitHub Pages, or any normal web host), progress and 
 - [Fork the repo](https://github.com/CyberChristy919/port-patrol/fork) to build your own version, then open a pull request if you'd like to share it back.
 
 The same links are in the footer of the game.
+
+## License
+
+Code is released under the [MIT License](LICENSE). The Cyber Christy Digital Training name and logo are not covered by the license; forks should use their own branding.
