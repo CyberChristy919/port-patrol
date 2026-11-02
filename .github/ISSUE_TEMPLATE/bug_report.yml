@@ -1,0 +1,53 @@
+name: Report a bug
+description: Something in Port Patrol isn't working, or a port fact looks wrong.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping make Port Patrol better. A few details help us fix it fast.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options:
+        - Port Quiz
+        - Packet Rush
+        - Port Blitz
+        - Patch Panel
+        - Cyber Snake
+        - Study Deck / Memory tricks
+        - Trophy Room / achievements / saving
+        - Wrong port number or port info
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead? For a port fact, include the port and your source (for example, the exam objectives).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Pick the Security+ deck
+        2. Start Port Blitz
+        3. ...
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. iPhone 15 Safari, Windows Chrome
+  - type: dropdown
+    id: site
+    attributes:
+      label: Which site were you on?
+      options:
+        - port-patrol.pplx.app
+        - GitHub Pages
+        - Running it locally / a fork
+        - Not sure

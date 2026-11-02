@@ -78,3 +78,11 @@ Open the Trophy Room from the trophy icon in the header or the progress strip on
 On the live site (pplx.app, GitHub Pages, or any normal web host), progress and your memory tricks **save automatically** in your browser using small first-party cookies (`pp_p`, `pp_t0`, `pp_t1`). No account is needed, and the game never uploads your progress (browsers do attach these cookies to requests to the game's own host, which ignores them). Saves are capped at about 8 KB; if many long memory tricks don't fit, the Trophy Room says so and the extra tricks stay session-only. **Reset progress** in the Trophy Room (click twice) erases the save.
 
 **Download progress** saves everything to a JSON file and **Load progress** brings it back, which is how to move progress to another device or browser. Loading merges with what's already there and keeps the higher values. In embedded previews that block cookies, the download file is the only way to keep progress.
+
+## Contribute
+
+- [Request a feature](https://github.com/CyberChristy919/port-patrol/issues/new?template=feature_request.yml): new modes, badges, ports, or study tools.
+- [Report a bug](https://github.com/CyberChristy919/port-patrol/issues/new?template=bug_report.yml): including any port number or fact that looks wrong.
+- [Fork the repo](https://github.com/CyberChristy919/port-patrol/fork) to build your own version, then open a pull request if you'd like to share it back.
+
+The same links are in the footer of the game.
