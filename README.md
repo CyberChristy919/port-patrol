@@ -1,8 +1,10 @@
+<p align="center">
+  <a href="https://port-patrol.pplx.app/"><img src="port-patrol-logo.png" alt="Port Patrol logo" width="260" /></a>
+</p>
+
 # Port Patrol
 
-Built by **Cyber Christy Digital Training**.
-
-<img src="logo.png" alt="Cyber Christy Digital Training logo" width="160" />
+Built by **Cyber Christy Digital Training** <img src="logo.png" alt="Cyber Christy Digital Training logo" width="28" align="absmiddle" />
 
 A browser game for learning TCP/UDP port numbers for CompTIA Network+, Security+, CCNA, and networking classes.
 
@@ -99,4 +101,11 @@ Code is released under the [MIT License](LICENSE). The Cyber Christy Digital Tra
 
 ## Releasing updates
 
-`index.html` loads `styles.css`, `data.js`, `achievements.js`, and `app.js` with a `?v=` version tag. Bump that tag whenever those files change so returning players get the new version instead of a cached copy.
+`index.html` loads `styles.css`, `data.js`, `achievements.js`, and `app.js` with a `?v=` version tag. Bump that tag whenever those files change (images such as `icon-512.png` and `port-patrol-logo.png` use their own `?v=` tag) so returning players get the new version instead of a cached copy.
+
+## Logo files
+
+- `port-patrol-logo.png`: the full Port Patrol logo (transparent background).
+- `icon-512.png`, `favicon.png`, `apple-touch-icon.png`: the simplified shield-and-port icon for small sizes.
+- `og-image.png`: the 1200 x 630 preview image shown when the link is shared.
+- `logo.png`: the Cyber Christy Digital Training parent logo.

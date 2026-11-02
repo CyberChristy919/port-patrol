@@ -511,3 +511,5 @@ h1 { font-family: var(--mono); font-weight: 800; font-size: clamp(30px, 5vw, 52p
 .foot-links a.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .foot-links a.primary:hover, .foot-links a.primary:focus-visible { color: var(--accent-ink); filter: brightness(1.08); }
 @media (max-width: 640px) { .foot-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .foot-links a { padding: 11px 10px; } }
+.foot-brand { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+.foot-brand img { width: 22px; height: auto; }
