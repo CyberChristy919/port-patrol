@@ -85,7 +85,7 @@
     $$(".screen").forEach((s) => s.classList.toggle("active", s.id === `screen-${name}`));
     window.scrollTo({ top: 0 });
     if (name === "menu") { state.drillIds = null; renderSessionStats(); renderProgressStrip(); resetCur(); }
-    if (name === "trophies") { renderTrophies(); progressStatus("Progress lasts for this visit. Download it to keep it, then load the file next time."); }
+    if (name === "trophies") { renderTrophies(); progressStatus(saveHint()); }
   }
   function startMode(mode) {
     state.lastMode = mode;
@@ -180,6 +180,7 @@
       m.right++; m.streak++;
       if (!m.mastered && m.streak >= MSTREAK) { m.mastered = true; cur.mastered.push(id); }
     } else m.streak = 0;
+    queueSave();
   }
   function checkBadges(g) {
     const M = masteryStats();
@@ -220,6 +221,7 @@
     fresh.forEach((b) => popToast(`<span class="t-k mono">Badge unlocked</span><b>${esc(b.name)}</b><span>+${XPR.badge[b.tier]} XP</span>`, "badge"));
     if (rankIndex(P.xp) > before) popToast(`<span class="t-k mono">Rank up</span><b>${esc(RANKS[rankIndex(P.xp)].name)}</b>`, "rank");
     if (fresh.length) { beep("win"); renderProgressStrip(); }
+    queueSave();
   }
   // Called by every game when it ends
   function gameEnd(g) {
@@ -228,6 +230,7 @@
     if (g.drill) P.drills++;
     addXP(XPR.game);
     cur.badges = checkBadges(g);
+    queueSave();
     const r = rankInfo();
     const up = r.i > cur.rankFrom;
     const parts = [];
@@ -286,7 +289,83 @@
         <span class="pips" aria-label="${lvl} of ${MSTREAK}">${Array.from({ length: MSTREAK }, (_, k) => `<i class="${k < lvl ? "on" : ""}"></i>`).join("")}</span></div>`;
     }).join("");
   }
-  // Save / load progress (the preview can't keep data between visits, so players download a file)
+  // ---------- Auto-save ----------
+  // Progress and the player's tricks are kept in small first-party cookies, so returning
+  // players pick up where they left off. Embedded previews block cookies; there the game
+  // falls back to the Download / Load progress buttons.
+  const SAVE_P = "pp_p", SAVE_T = ["pp_t0", "pp_t1"], SAVE_CHUNK = 3800, SAVE_BUDGET = 8000, SAVE_DAYS = 400;
+  const b64e = (str) => btoa(String.fromCharCode(...new TextEncoder().encode(str))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const b64d = (str) => new TextDecoder().decode(Uint8Array.from(atob(str.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0)));
+  function readCookies() {
+    const out = {};
+    try { (document.cookie || "").split(/;\s*/).forEach((kv) => { const i = kv.indexOf("="); if (i > 0) out[kv.slice(0, i)] = kv.slice(i + 1); }); } catch (e) { return null; }
+    return out;
+  }
+  function writeCookie(name, val) {
+    const life = val ? SAVE_DAYS * 86400 : 0;
+    try { document.cookie = `${name}=${val}; Max-Age=${life}; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`; } catch (e) {}
+  }
+  const autoSave = (() => {
+    try { writeCookie("pp_test", "1"); const ok = (readCookies() || {}).pp_test === "1"; writeCookie("pp_test", ""); return ok; } catch (e) { return false; }
+  })();
+  function packProgress() {
+    const m = Object.keys(P.mastery).map((id) => { const x = P.mastery[id]; return [id, x.streak, x.right, x.seen, x.mastered ? 1 : 0].join("."); }).join("~");
+    return b64e(JSON.stringify({ v: 1, n: [P.xp, P.games, P.correct, P.answered, P.drills, P.flips, P.tricks], mo: Object.keys(P.modes), b: Object.keys(P.badges), m }));
+  }
+  function unpackProgress(str) {
+    const d = JSON.parse(b64d(str));
+    if (!d || d.v !== 1 || !Array.isArray(d.n)) return null;
+    const out = freshProgress();
+    ["xp", "games", "correct", "answered", "drills", "flips", "tricks"].forEach((k, i) => { out[k] = +d.n[i] || 0; });
+    (d.mo || []).forEach((k) => { out.modes[k] = 1; });
+    (d.b || []).forEach((k) => { out.badges[k] = 1; });
+    String(d.m || "").split("~").filter(Boolean).forEach((row) => {
+      const [id, st, r, se, ma] = row.split(".");
+      out.mastery[id] = { streak: +st || 0, right: +r || 0, seen: +se || 0, mastered: ma === "1" };
+    });
+    return out;
+  }
+  let saveNote = "";
+  function saveNow() {
+    if (!autoSave) return;
+    const p = packProgress();
+    writeCookie(SAVE_P, p);
+    // Tricks go in up to two extra cookies; anything past the size budget stays session-only
+    const keep = {};
+    let tStr = "";
+    for (const id of Object.keys(myTricks)) {
+      const next = b64e(JSON.stringify({ ...keep, [id]: myTricks[id] }));
+      if (p.length + next.length > SAVE_BUDGET || next.length > SAVE_CHUNK * SAVE_T.length) break;
+      keep[id] = myTricks[id]; tStr = next;
+    }
+    SAVE_T.forEach((name, i) => writeCookie(name, tStr.slice(i * SAVE_CHUNK, (i + 1) * SAVE_CHUNK)));
+    const left = Object.keys(myTricks).length - Object.keys(keep).length;
+    saveNote = left ? `Auto-save is full, so ${left} memory trick${left === 1 ? "" : "s"} won't be kept. Download progress to keep ${left === 1 ? "it" : "them"}.` : "";
+  }
+  let saveT = 0;
+  function queueSave() { if (!autoSave) return; clearTimeout(saveT); saveT = setTimeout(saveNow, 600); }
+  function restoreSave() {
+    if (!autoSave) return;
+    const c = readCookies() || {};
+    try {
+      if (c[SAVE_P]) { const got = unpackProgress(c[SAVE_P]); if (got) mergeProgress(got); }
+      const t = SAVE_T.map((n) => c[n] || "").join("");
+      if (t) { const tr = JSON.parse(b64d(t)); Object.keys(tr || {}).forEach((id) => { if (byId[id] && typeof tr[id] === "string" && tr[id].trim()) myTricks[id] = tr[id].trim().slice(0, 240); }); }
+    } catch (e) {}
+  }
+  function clearSave() {
+    P = freshProgress();
+    Object.keys(myTricks).forEach((k) => delete myTricks[k]);
+    [SAVE_P, ...SAVE_T].forEach((n) => writeCookie(n, ""));
+    resetCur(); renderTrophies(); renderProgressStrip();
+  }
+  window.addEventListener("pagehide", () => { if (saveT) { clearTimeout(saveT); saveNow(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && saveT) { clearTimeout(saveT); saveNow(); } });
+  const saveHint = () => autoSave
+    ? (saveNote || "Progress saves automatically in this browser. Download it to move to another device.")
+    : "Progress lasts for this visit. Download it to keep it, then load the file next time.";
+
+  // Save / load progress file (works everywhere, and moves progress between devices)
   function progressStatus(t) { $("#tr-status").textContent = t; }
   function downloadProgress() {
     const out = { app: "Port Patrol", kind: "progress", version: 1, savedAt: new Date().toISOString(), progress: P, tricks: myTricks };
@@ -320,7 +399,7 @@
       }
       P.tricks = Math.max(P.tricks, Object.keys(myTricks).length);
       resetCur();
-      renderTrophies(); renderProgressStrip();
+      renderTrophies(); renderProgressStrip(); queueSave();
       progressStatus(msg.length ? `Loaded ${msg.join(" and ")}.` : "No Port Patrol progress found in that file.");
     }).catch(() => progressStatus("That file couldn't be read. Use a file downloaded from Port Patrol."));
   }
@@ -1047,7 +1126,7 @@
   function flipCard() {
     const fc = $("#flashcard");
     fc.classList.toggle("flipped");
-    if (fc.classList.contains("flipped")) { P.flips++; if (P.flips === 25) checkNow(); }
+    if (fc.classList.contains("flipped")) { P.flips++; if (P.flips === 25) checkNow(); else queueSave(); }
   }
   $("#flashcard").addEventListener("click", flipCard);
   $("#fc-next").addEventListener("click", () => { study.i = (study.i + 1) % study.cards.length; renderCard(); });
@@ -1077,6 +1156,7 @@
       let n = 0;
       Object.keys(t || {}).forEach((id) => { if (byId[id] && typeof t[id] === "string" && t[id].trim()) { myTricks[id] = t[id].trim().slice(0, 240); n++; } });
       renderTricks($("#tricks-search").value);
+      queueSave();
       trickStatus(n ? `Loaded ${n} trick${n === 1 ? "" : "s"}.` : "No tricks found in that file.");
     }).catch(() => trickStatus("That file couldn't be read. Use a file downloaded from Port Patrol."));
     e.target.value = "";
@@ -1088,8 +1168,9 @@
     if (v) myTricks[ta.dataset.trick] = v; else delete myTricks[ta.dataset.trick];
     const nT = Object.keys(myTricks).length;
     if (nT > P.tricks) { P.tricks = nT; if (nT >= 3) checkNow(); }
+    queueSave();
     const msg = ta.closest(".trick").querySelector(".trick-saved");
-    msg.textContent = "Saved for this session";
+    msg.textContent = autoSave ? "Saved in this browser" : "Saved for this session";
     clearTimeout(trickT); trickT = setTimeout(() => (msg.textContent = ""), 1600);
   });
 
@@ -1121,8 +1202,26 @@
 
   // ---------- Init ----------
   $("#binary-bg").textContent = Array.from({ length: 6000 }, () => (Math.random() < 0.5 ? "0" : "1")).join("");
+  restoreSave();
+  P.tricks = Math.max(P.tricks, Object.keys(myTricks).length);
   resetCur();
   renderProgressStrip();
+  if (autoSave) $("#tricks-status").textContent = "Your tricks save automatically in this browser. Download them to move them to another device.";
+  const resetBtn = $("#tr-reset");
+  let resetArm = 0;
+  resetBtn.hidden = !autoSave;
+  resetBtn.addEventListener("click", () => {
+    if (!resetArm) {
+      resetBtn.textContent = "Click again to erase";
+      resetBtn.classList.add("danger");
+      resetArm = setTimeout(() => { resetArm = 0; resetBtn.textContent = "Reset progress"; resetBtn.classList.remove("danger"); }, 4000);
+      return;
+    }
+    clearTimeout(resetArm); resetArm = 0;
+    resetBtn.textContent = "Reset progress"; resetBtn.classList.remove("danger");
+    clearSave();
+    progressStatus("Progress erased. You're starting fresh.");
+  });
   $("#tr-download").addEventListener("click", downloadProgress);
   $("#tr-load").addEventListener("click", () => $("#tr-file").click());
   $("#tr-file").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; if (f) loadProgressFile(f); e.target.value = ""; });

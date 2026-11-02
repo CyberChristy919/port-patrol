@@ -61,7 +61,7 @@ Built-in mnemonics live in `window.MNEMONICS` at the bottom of `data.js`, keyed 
 smtp: "Send Mail To 25 People.",
 ```
 
-They appear in Study Deck > Memory tricks, on the back of flashcards, after each quiz answer, and in the review list at the end of a game. Players can write their own trick for any port; it replaces the built-in trick on flashcards and in feedback. Player tricks last for the session; **Download my tricks** saves them as a JSON file and **Load tricks file** brings them back.
+They appear in Study Deck > Memory tricks, on the back of flashcards, after each quiz answer, and in the review list at the end of a game. Players can write their own trick for any port; it replaces the built-in trick on flashcards and in feedback. Player tricks save automatically with the rest of your progress; **Download my tricks** saves them as a JSON file and **Load tricks file** brings them back.
 
 ## Achievements
 
@@ -75,4 +75,6 @@ Open the Trophy Room from the trophy icon in the header or the progress strip on
 
 ### Saving progress
 
-Progress lasts for the current visit. Use **Download progress** in the Trophy Room to save a JSON file (it also includes your memory tricks), then **Load progress** next time to pick up where you left off. Loading merges with the current visit and keeps the higher values.
+On the live site (pplx.app, GitHub Pages, or any normal web host), progress and your memory tricks **save automatically** in your browser using small first-party cookies (`pp_p`, `pp_t0`, `pp_t1`). No account is needed, and the game never uploads your progress (browsers do attach these cookies to requests to the game's own host, which ignores them). Saves are capped at about 8 KB; if many long memory tricks don't fit, the Trophy Room says so and the extra tricks stay session-only. **Reset progress** in the Trophy Room (click twice) erases the save.
+
+**Download progress** saves everything to a JSON file and **Load progress** brings it back, which is how to move progress to another device or browser. Loading merges with what's already there and keeps the higher values. In embedded previews that block cookies, the download file is the only way to keep progress.
