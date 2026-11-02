@@ -6,6 +6,12 @@ Built by **Cyber Christy Digital Training**.
 
 A browser game for learning TCP/UDP port numbers for CompTIA Network+, Security+, CCNA, and networking classes.
 
+## Play now
+
+**[Play Port Patrol at port-patrol.pplx.app](https://port-patrol.pplx.app/)**. Nothing to install, and your progress saves automatically in your browser.
+
+Also available on [GitHub Pages](https://cyberchristy919.github.io/port-patrol/).
+
 ## Play locally
 
 No install or build step. Either open `index.html` in a browser, or serve the folder:
