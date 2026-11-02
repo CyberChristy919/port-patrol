@@ -90,3 +90,7 @@ The same links are in the footer of the game.
 ## License
 
 Code is released under the [MIT License](LICENSE). The Cyber Christy Digital Training name and logo are not covered by the license; forks should use their own branding.
+
+## Releasing updates
+
+`index.html` loads `styles.css`, `data.js`, `achievements.js`, and `app.js` with a `?v=` version tag. Bump that tag whenever those files change so returning players get the new version instead of a cached copy.
