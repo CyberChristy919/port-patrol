@@ -555,3 +555,33 @@ h1 { font-family: var(--mono); font-weight: 800; font-size: clamp(30px, 5vw, 52p
   .adv-story { display: none; }
   .adv-lv { padding: 7px 8px; } .adv-lv-s { display: none; }
 }
+
+/* Menu clarity: steps, featured game, card CTAs */
+.deck-label, .section-label { color: var(--accent); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; }
+.section-label { margin: 30px 0 12px; }
+.how-steps { list-style: none; padding: 0; margin: 0 0 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.how-steps li { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; color: var(--muted); font-size: 14px; }
+.how-steps strong { color: var(--text); }
+.how-steps b { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-blue); color: #fff; font-size: 14px; }
+@media (max-width: 760px) { .how-steps { grid-template-columns: 1fr; } }
+.feature-card { width: 100%; text-align: left; display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: center; padding: 28px; border-radius: var(--radius); border: 2px solid var(--accent); background: linear-gradient(120deg, var(--surface) 55%, rgba(0,0,254,0.28)); color: var(--text); cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 0 0 0 rgba(255,236,1,0); }
+.feature-card:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(255,236,1,0.15); }
+.feature-tag { display: inline-block; background: var(--brand-pink); color: #fff; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
+.feature-card h2 { font-family: var(--mono); font-size: clamp(26px, 3.4vw, 38px); margin: 12px 0 8px; color: var(--accent); }
+.feature-card p { color: var(--muted); font-size: 16px; margin: 0 0 12px; max-width: 58ch; }
+.feature-card p b { color: var(--text); }
+.feature-points { margin: 0 0 18px; padding-left: 18px; color: var(--text); font-size: 14px; display: grid; gap: 4px; }
+.play-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 16px; padding: 12px 22px; border-radius: 10px; box-shadow: 0 4px 0 rgba(0,0,0,.45); }
+.feature-card:hover .play-btn { filter: brightness(1.05); }
+.feature-art { background: var(--brand-black); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.fa-target { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-align: center; }
+.fa-target b { color: var(--accent); }
+.fa-board { position: relative; aspect-ratio: 4 / 3; border-radius: 8px; background-color: #111; background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 8% 10.6%; overflow: hidden; }
+.fa-snake { position: absolute; width: 8%; height: 10.6%; background: var(--brand-blue); border-radius: 4px; box-shadow: 0 0 10px rgba(0,0,254,.7); }
+.fa-snake.head { background: var(--accent); }
+.fa-food { position: absolute; transform: translate(-50%, -50%); font-size: 13px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: rgba(255,0,140,.2); color: #ff6fbf; border: 1px solid var(--brand-pink); }
+.fa-food.ok { background: rgba(255,236,1,.15); color: var(--accent); border-color: var(--accent); }
+@media (max-width: 760px) { .feature-card { grid-template-columns: 1fr; padding: 20px; } }
+.card-cta { margin-top: 6px; align-self: flex-start; font-weight: 700; font-size: 14px; color: var(--accent); border: 1px solid rgba(255,236,1,.5); border-radius: 8px; padding: 7px 14px; }
+.mode-card:hover .card-cta { background: var(--accent); color: var(--accent-ink); }
+.mode-key { text-transform: uppercase; letter-spacing: .08em; }
